@@ -78,9 +78,36 @@ impl DerefMut for Stmt {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum StmtKind {
-    Return(i32),
+    Return(Exp),
 }
 
-pub fn to_int_literal<'ip>(src: &'ip str, radix: u32, prefix_len: usize) -> i32 {
-    i32::from_str_radix(unsafe { &src.get_unchecked(prefix_len..) }, radix).unwrap()
+// pub fn to_int_literal<'ip>(src: &'ip str, radix: u32, prefix_len: usize) -> i32 {
+//     unimplemented!()
+// }
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Exp(pub UnaryExp);
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum PrimaryExp {
+    Exp(Box<Exp>),
+    Literal(i32),
+}
+
+impl PrimaryExp {
+    pub fn literal<'ip>(src: &'ip str, radix: u32, prefix_len: usize) -> PrimaryExp {
+        PrimaryExp::Literal(i32::from_str_radix(unsafe { &src.get_unchecked(prefix_len..) }, radix).unwrap())
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum UnaryExp {
+    Primary(PrimaryExp),
+    Unary(UnaryOp, Box<UnaryExp>),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum UnaryOp {
+    Minus,
+    LNot,
 }

@@ -5,7 +5,7 @@ use koopa::ir::{
     builder_traits::*,
 };
 
-use crate::WrapProgram;
+use crate::{WrapProgram, util::autonum::Autonum};
 
 use super::{ast, table::Table};
 
@@ -16,10 +16,12 @@ pub struct Context<'a> {
     pub globals: &'a mut Table,
     pub func: ir::Function,
     pub table: Table,
+    pub auton: Autonum,
     entry: Option<ir::BasicBlock>,
     end: Option<ir::BasicBlock>,
 }
 
+#[macro_export]
 macro_rules! val {
     ($t:ident ( $($e: expr),* )) => {
         |b| { b.$t($($e,)*) }
@@ -66,6 +68,7 @@ impl<'a: 'f, 'f> Context<'a> {
             entry: None,
             end: None,
             table: Table::new(),
+            auton: Autonum::new(),
         })
     }
 
@@ -133,16 +136,24 @@ impl<'a: 'f, 'f> Context<'a> {
             .basic_block(Some(format!("%{}", name)))
     }
 
-    pub fn add_value<F>(&mut self, builder_fn: F, name: Option<&str>) -> ir::Value
+    pub fn add_value<F>(&mut self, builder_fn: F, name: Option<String>) -> ir::Value
     where
         F: FnOnce(ir::builder::LocalBuilder) -> ir::Value,
     {
         let val = builder_fn(self.dfg_mut().new_value());
         if let Some(_) = name {
             self.dfg_mut()
-                .set_value_name(val, name.map(str::to_string));
+                .set_value_name(val, name);
         }
         val
+    }
+
+    pub fn add_mid_value<F>(&mut self, builder_fn: F) -> ir::Value
+    where
+        F: FnOnce(ir::builder::LocalBuilder) -> ir::Value
+    {
+        let name = self.auton.gen(None);
+        self.add_value(builder_fn, Some(name))
     }
 
     pub fn insert_block(&mut self, block: ir::BasicBlock) {

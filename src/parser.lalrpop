@@ -30,15 +30,29 @@ Stmt: Stmt = {
 }
 
 ReturnStmt: Stmt = {
-    "return" <r:INT_LITERAL> ";" => Stmt { kind: StmtKind::Return(r) }
+    "return" <r:Exp> ";" => Stmt { kind: StmtKind::Return(r) }
+}
+
+Exp: Exp = UnaryExp => Exp(<>);
+
+PrimaryExp: PrimaryExp = {
+    "(" <Exp> ")" => PrimaryExp::Exp(Box::new(<>)),
+    r"(-|\+)?([1-9][0-9]*|0)" => PrimaryExp::literal(<>, 10, 0),
+    r"0[0-7]+" => PrimaryExp::literal(<>, 8, 1),
+    r"0[xX][0-9a-fA-F]+" => PrimaryExp::literal(<>, 16, 2),
+}
+
+UnaryExp: UnaryExp = {
+    PrimaryExp => UnaryExp::Primary(<>),
+    <o:UnaryOp> <e:UnaryExp> => UnaryExp::Unary(o, Box::new(e)),
+    "+" <UnaryExp>,
+}
+
+UnaryOp: UnaryOp = {
+    "-" => UnaryOp::Minus,
+    "!" => UnaryOp::LNot,
 }
 
 IDENT: String = r"[A-Za-z_][A-Za-z0-9_]+" => <>.to_string();
 
 FUNC_TYPE: String = "int" => <>.to_string();
-
-pub INT_LITERAL: i32 = {
-    r"(-|\+)?([1-9][0-9]*|0)" => to_int_literal(<>, 10, 0),
-    r"0[0-7]+" => to_int_literal(<>, 8, 1),
-    r"0[xX][0-9a-fA-F]+" => to_int_literal(<>, 16, 2),
-}
