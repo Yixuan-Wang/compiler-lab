@@ -6,22 +6,22 @@ use super::context::Context;
 use super::ast;
 use koopa::ir::{self, builder_traits::*};
 
-/// [`Instruct`] 处理语句（[`ast::StmtKind`]），将每一条语句转化为 Koopa 内存形式
-pub trait Instruct<'f> {
+/// [`Generate`] 处理语句（[`ast::StmtKind`]），将每一条语句转化为 Koopa 内存形式
+pub trait Generate<'f> {
     type Eval;
-    fn instruct(&self, ctx: &'f mut Context) -> Self::Eval;
+    fn generate(&self, ctx: &'f mut Context) -> Self::Eval;
 }
 
-impl<'f> Instruct<'f> for ast::StmtKind {
+impl<'f> Generate<'f> for ast::StmtKind {
     type Eval = ();
-    fn instruct(&self, ctx: &'f mut Context) {
+    fn generate(&self, ctx: &'f mut Context) {
         use ast::StmtKind::*;
         match self {
             Return(r) => {
                 // let (curr, end) = (ctx.curr(), ctx.end());
                 let entry = ctx.entry();
                 // let ret_val = ctx.table.get_var("%ret");
-                let ret_val = r.instruct(ctx);
+                let ret_val = r.generate(ctx);
                 let val = ctx.value(ret_val);
                 
                 // let store = ctx.add_value(val!(store(return_cnst, ret_val)), None);
@@ -35,31 +35,31 @@ impl<'f> Instruct<'f> for ast::StmtKind {
     }
 }
 
-impl<'f> Instruct<'f> for ast::PrimaryExp {
+impl<'f> Generate<'f> for ast::PrimaryExp {
     type Eval = ir::Value;
-    fn instruct(&self, ctx: &'f mut Context) -> ir::Value {
+    fn generate(&self, ctx: &'f mut Context) -> ir::Value {
         match self {
             Self::Literal(i) => ctx.add_value(val!(integer(*i)), None),
-            Self::Exp(b) => b.instruct(ctx),
+            Self::Exp(b) => b.generate(ctx),
         }
     }
 }
 
-impl<'f> Instruct<'f> for ast::Exp {
+impl<'f> Generate<'f> for ast::Exp {
     type Eval = ir::Value;
-    fn instruct(&self, ctx: &'f mut Context) -> Self::Eval {
-        self.0.instruct(ctx)
+    fn generate(&self, ctx: &'f mut Context) -> Self::Eval {
+        self.0.generate(ctx)
     }
 }
 
-impl<'f> Instruct<'f> for ast::UnaryExp {
+impl<'f> Generate<'f> for ast::UnaryExp {
     type Eval = ir::Value;
-    fn instruct(&self, ctx: &'f mut Context) -> Self::Eval {
+    fn generate(&self, ctx: &'f mut Context) -> Self::Eval {
         use ast::UnaryOp::*;
         match self {
-            Self::Primary(p) => p.instruct(ctx),
+            Self::Primary(p) => p.generate(ctx),
             Self::Unary(o, b) => {
-                let v = b.instruct(ctx);
+                let v = b.generate(ctx);
                 let zero = ctx.add_value(val!(integer(0)), None);
                 match o {
                     Minus => {

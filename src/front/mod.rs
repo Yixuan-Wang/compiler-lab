@@ -1,7 +1,7 @@
 pub mod ast;
 #[macro_use] mod context;
 mod table;
-mod instruct;
+mod gen;
 
 use lalrpop_util::lalrpop_mod;
 lalrpop_mod! {
@@ -14,7 +14,7 @@ use koopa::{ir::{Program, builder_traits::*}, back::KoopaGenerator};
 
 use self::table::Table;
 use self::context::{Context};
-use self::instruct::Instruct;
+use self::gen::Generate;
 
 pub fn into_ast(source: String) -> Vec<ast::Item> {
     let parser = parser::CompUnitParser::new();
@@ -87,7 +87,7 @@ impl<'a> Declare<'a> for ast::Item {
                 // let jump_cur = ctx.add_value(val!(jump(cur)), None);
                 // ctx.insert_inst(jump_cur, ctx.entry());
                 for stmt in &func.block {
-                    stmt.instruct(&mut ctx);
+                    stmt.generate(&mut ctx);
                 }
             }
         };

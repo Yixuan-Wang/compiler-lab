@@ -1,7 +1,7 @@
 use koopa::ir;
 
 use crate::WrapProgram;
-use super::{Instruct, risc::{RiscItem as Item, RiscInst as Inst, RiscReg as Reg}};
+use super::{Generate, risc::{RiscItem as Item, RiscInst as Inst, RiscReg as Reg}};
 
 pub struct Context<'a> {
     pub program: &'a mut ir::Program,
@@ -31,7 +31,7 @@ impl<'a> Context<'a> {
                 node.insts()
                     .keys()
                     .map(|&key| self.dfg().value(key))
-                    .flat_map(|val| val.instruct(self))
+                    .flat_map(|val| val.generate(self))
                     .map(|inst| Item::Inst(inst))
             );
         };

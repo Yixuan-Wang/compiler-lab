@@ -45,19 +45,19 @@ impl TryFrom<Ir> for Target {
 //         for (_, node) in self.layout().bbs() {
 //             for &inst in node.insts().keys() {
 //               let value_data = self.dfg().value(inst);
-//               value_data.instruct();
+//               value_data.generate();
 //             }
 //         }
 //     }
 // }
 
-/// [`Instruct`] 处理 [`ir::entities::ValueData`]，将每一条语句从 Koopa 内存形式转化为 RISC-V 指令
-trait Instruct<'a> {
-    fn instruct(&self, ctx: &'a Context) -> Vec<risc::RiscInst>;
+/// [`Generate`] 处理 [`ir::entities::ValueData`]，将每一条语句从 Koopa 内存形式转化为 RISC-V 指令
+trait Generate<'a> {
+    fn generate(&self, ctx: &'a Context) -> Vec<risc::RiscInst>;
 }
 
-impl<'a> Instruct<'a> for ir::entities::ValueData {
-    fn instruct(&self, ctx: &'a Context) -> Vec<risc::RiscInst> {
+impl<'a> Generate<'a> for ir::entities::ValueData {
+    fn generate(&self, ctx: &'a Context) -> Vec<risc::RiscInst> {
         use ir::entities::ValueKind::*;
         use risc::{RiscInst as Inst, RiscReg as Reg};
         match self.kind() {
@@ -70,7 +70,7 @@ impl<'a> Instruct<'a> for ir::entities::ValueData {
                 },
                 None => todo!(),
             },
-            Integer(_) => unimplemented!("Integer is not instruction"),
+            Integer(_) => unimplemented!("Integer is not generateion"),
             _ => todo!(),
         }
     }
