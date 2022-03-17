@@ -70,6 +70,7 @@ impl TryFrom<Ir> for String {
     }
 }
 
+/// [`Declare`] 处理 AST 中的条目（[`ast::Item`]）：全局常量、变量声明和函数，并为每一个函数生成上下文（[`Context`]）
 trait Declare<'a> {
     fn declare(&self, program: &'a mut Program, globals: &'a mut Table);
 }
@@ -93,6 +94,7 @@ impl<'a> Declare<'a> for ast::Item {
     }
 }
 
+/// [`Instruct`] 处理语句（[`ast::StmtKind`]），将每一条语句转化为 Koopa 内存形式
 trait Instruct<'f> {
     fn instruct(&self, ctx: &'f mut Context);
 }

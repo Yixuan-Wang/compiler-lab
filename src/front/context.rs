@@ -5,6 +5,8 @@ use koopa::ir::{
     builder_traits::*,
 };
 
+use crate::WrapProgram;
+
 use super::{ast, table::Table};
 
 /// Context is a high-level [`koopa::ir::Program`] wrapper around a [`koopa::ir::Function`]
@@ -22,6 +24,12 @@ macro_rules! val {
     ($t:ident ( $($e: expr),* )) => {
         |b| { b.$t($($e,)*) }
     }
+}
+
+impl<'a> WrapProgram for Context<'a> {
+    fn program(&self) -> &ir::Program { self.program }
+    fn program_mut(&mut self) -> &mut ir::Program { self.program }
+    fn func_handle(&self) -> ir::Function { self.func }
 }
 
 impl<'a: 'f, 'f> Context<'a> {
@@ -95,7 +103,7 @@ impl<'a: 'f, 'f> Context<'a> {
         // self.end = Some(end);
     }
 
-    pub fn func_mut(&mut self) -> &mut ir::FunctionData {
+    /* pub fn func_mut(&mut self) -> &mut ir::FunctionData {
         self.program.func_mut(self.func)
     }
 
@@ -117,7 +125,7 @@ impl<'a: 'f, 'f> Context<'a> {
 
     pub fn layout(&self) -> &ir::layout::Layout {
         self.func().layout()
-    }
+    } */
 
     pub fn add_block(&mut self, name: &str) -> ir::BasicBlock {
         self.dfg_mut()

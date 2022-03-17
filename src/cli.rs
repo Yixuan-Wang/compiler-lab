@@ -26,7 +26,11 @@ impl Config {
                     "-koopa" => {
                         mode = CompilerMode::Koopa;
                         input.push_str(args.get(idx + 1).expect("Missing input path!"))
-                    }
+                    },
+                    "-riscv" => {
+                        mode = CompilerMode::Riscv;
+                        input.push_str(args.get(idx + 1).expect("Missing input path!"))
+                    },
                     "-o" => output.push_str(args.get(idx + 1).expect("Missing output path!")),
                     _ => unimplemented!(),
                 }

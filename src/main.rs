@@ -1,6 +1,6 @@
 use std::fs;
 
-use compiler::{cli, front};
+use compiler::{cli, front, back};
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -11,6 +11,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         cli::CompilerMode::Koopa => {
             let koopa = front::into_ir_text(ir)?;
             fs::write(&config.output, koopa)?;
+            Ok(())
+        }
+        cli::CompilerMode::Riscv => {
+            let riscv = back::into_riscv(ir)?;
+            fs::write(&config.output, riscv)?;
             Ok(())
         }
         _ => unimplemented!()
@@ -37,6 +42,7 @@ fn test_parse() {
     let ast = front::into_ast(source);
     dbg!(&ast);
     let ir: front::Ir = ast.try_into().unwrap();
-    let text: String = ir.try_into().unwrap();
-    print!("{}", text);
+    // let text: String = ir.try_into().unwrap();
+    let asm: back::Target = ir.try_into().unwrap();
+    print!("{}", asm.0);
 }
