@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Add, str::ParseBoolError};
+use std::{collections::HashMap};
 
 /* #[macro_export]
 macro_rules! auton {
@@ -43,7 +43,7 @@ impl Autonum {
                     None => format!("%0"),
                 };
                 let mut c = Autocount::new(None);
-                c.next();
+                c.next().unwrap();
                 self.h.insert(name, c);
                 s
             },
