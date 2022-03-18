@@ -43,9 +43,11 @@ impl<'a> Generate<'a> for ir::entities::Value {
                             Inst::Xor(dreg, lreg, rreg),
                             Inst::Seqz(dreg, dreg),
                         ]),
-                        Sub => v.extend([
-                            Inst::Sub(dreg, lreg, rreg),
-                        ]),
+                        Add => v.extend([Inst::Add(dreg, lreg, rreg),]),
+                        Sub => v.extend([Inst::Sub(dreg, lreg, rreg),]),
+                        Mul => v.extend([Inst::Mul(dreg, lreg, rreg),]),
+                        Div => v.extend([Inst::Div(dreg, lreg, rreg),]),
+                        Mod => v.extend([Inst::Rem(dreg, lreg, rreg),]),
                         _ => todo!()
                     }
                 }

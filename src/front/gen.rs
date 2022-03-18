@@ -21,9 +21,7 @@ impl<'f> Generate<'f> for ast::StmtKind {
                 // let (curr, end) = (ctx.curr(), ctx.end());
                 let entry = ctx.entry();
                 // let ret_val = ctx.table.get_var("%ret");
-                let ret_val = r.generate(ctx);
-                let val = ctx.value(ret_val);
-                
+                let ret_val = r.generate(ctx);                
                 // let store = ctx.add_value(val!(store(return_cnst, ret_val)), None);
                 // let jump = ctx.add_value(val!(jump(end)), None);
                 // ctx.insert_inst(store, curr);
