@@ -14,7 +14,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             Ok(())
         },
         cli::CompilerMode::Riscv => {
-            // todo!();
             let riscv = back::into_riscv(ir)?;
             fs::write(&config.output, riscv)?;
             Ok(())
@@ -60,5 +59,13 @@ mod test {
         let koopa = front::into_ir(source);
         let koopa = front::into_ir_text(koopa).unwrap();
         print!("{}", koopa);
+    }
+
+    #[test]
+    fn riscv() {
+        let source = read_test_file();
+        let koopa = front::into_ir(source);
+        let riscv = back::into_riscv(koopa).unwrap();
+        print!("{}", riscv);
     }
 }
