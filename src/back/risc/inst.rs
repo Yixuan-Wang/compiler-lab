@@ -8,10 +8,19 @@ use super::reg::RiscReg as Reg;
 pub enum RiscInst {
     /// 异或 `xor rd, rs1, rs2`
     Xor(Reg, Reg, Reg),
+    /// 加 `add rd, rs1, rs2`
+    Add(Reg, Reg, Reg),
     /// 减 `sub rd, rs1, rs2`
     Sub(Reg, Reg, Reg),
-    /// 判断为 0 `seqz/snez rd, rs`
+    /// 乘 `mul rd, rs1, rs2`
+    Mul(Reg, Reg, Reg),
+    /// 除 `div rd, rs1, rs2`
+    Div(Reg, Reg, Reg),
+    /// 模 `rem rd, rs1, rs2`
+    Rem(Reg, Reg, Reg),
+    /// 判零 `seqz rd, rs`
     Seqz(Reg, Reg),
+    /// 非零 `senz rd, rs`
     Senz(Reg, Reg),
     /// 返回 `ret`
     Ret,
@@ -26,7 +35,11 @@ impl Display for RiscInst {
         use self::RiscInst::*;
         match self {
             Xor(rd, rs1, rs2) => write!(f, "xor {rd}, {rs1}, {rs2}"),
+            Add(rd, rs1, rs2) => write!(f, "add {rd}, {rs1}, {rs2}"),
             Sub(rd, rs1, rs2) => write!(f, "sub {rd}, {rs1}, {rs2}"),
+            Mul(rd, rs1, rs2) => write!(f, "mul {rd}, {rs1}, {rs2}"),
+            Div(rd, rs1, rs2) => write!(f, "div {rd}, {rs1}, {rs2}"),
+            Rem(rd, rs1, rs2) => write!(f, "rem {rd}, {rs1}, {rs2}"),
             Seqz(rd, rs) => write!(f, "seqz {rd}, {rs}"),
             Senz(rd, rs) => write!(f, "senz {rd}, {rs}"),
             Ret => write!(f, "ret"),

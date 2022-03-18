@@ -33,7 +33,7 @@ ReturnStmt: Stmt = {
     "return" <r:Exp> ";" => Stmt { kind: StmtKind::Return(r) }
 }
 
-Exp: Exp = UnaryExp => Exp(<>);
+Exp: Exp = AddExp => Exp(<>);
 
 PrimaryExp: PrimaryExp = {
     "(" <Exp> ")" => PrimaryExp::Exp(Box::new(<>)),
@@ -51,6 +51,27 @@ UnaryExp: UnaryExp = {
 UnaryOp: UnaryOp = {
     "-" => UnaryOp::Minus,
     "!" => UnaryOp::LNot,
+}
+
+MulExp: MulExp = {
+    <UnaryExp> => MulExp::Unary(<>),
+    <l:MulExp> <o:MulOp> <r:UnaryExp> => MulExp::Binary(Box::new(l), o, r),
+}
+
+MulOp: MulOp = {
+    "*" => MulOp::Mul,
+    "/" => MulOp::Div,
+    "%" => MulOp::Mod,
+}
+
+AddExp: AddExp = {
+    <MulExp> => AddExp::Unary(<>),
+    <l:AddExp> <o:AddOp> <r:MulExp> => AddExp::Binary(Box::new(l), o, r),
+}
+
+AddOp: AddOp = {
+    "+" => AddOp::Add,
+    "-" => AddOp::Sub,
 }
 
 IDENT: String = r"[A-Za-z_][A-Za-z0-9_]+" => <>.to_string();

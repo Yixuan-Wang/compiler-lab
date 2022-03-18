@@ -21,21 +21,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-#[test]
-fn test_parse() {
-    let source = r#"
-    int main() {
-        return +(- -!6);  // 看起来像个颜文字
-      }
-    "#.to_string();
-    let ast = front::into_ast(source);
-    dbg!(&ast);
-    let ir: front::Ir = ast.try_into().unwrap();
-    // let text: String = ir.try_into().unwrap();
-    // let asm: back::Target = ir.try_into().unwrap();
-    // print!("{}", asm.0);
-}
-
 #[cfg(test)]
 mod test {
     use std::fs::{self, read_dir};

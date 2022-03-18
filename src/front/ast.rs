@@ -76,7 +76,7 @@ impl DerefMut for Stmt {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum StmtKind {
     Return(Exp),
 }
@@ -85,10 +85,10 @@ pub enum StmtKind {
 //     unimplemented!()
 // }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct Exp(pub UnaryExp);
+#[derive(Debug)]
+pub struct Exp(pub AddExp);
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum PrimaryExp {
     Exp(Box<Exp>),
     Literal(i32),
@@ -100,7 +100,7 @@ impl PrimaryExp {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum UnaryExp {
     Primary(PrimaryExp),
     Unary(UnaryOp, Box<UnaryExp>),
@@ -110,4 +110,29 @@ pub enum UnaryExp {
 pub enum UnaryOp {
     Minus,
     LNot,
+}
+
+#[derive(Debug)]
+pub enum MulExp {
+    Unary(UnaryExp),
+    Binary(Box<MulExp>, MulOp, UnaryExp),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum MulOp {
+    Mul,
+    Div,
+    Mod,
+}
+
+#[derive(Debug)]
+pub enum AddExp {
+    Unary(MulExp),
+    Binary(Box<AddExp>, AddOp, MulExp),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum AddOp {
+    Add,
+    Sub,
 }
