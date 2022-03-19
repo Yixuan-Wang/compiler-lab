@@ -43,11 +43,28 @@ impl<'a> Generate<'a> for ir::entities::Value {
                             Inst::Xor(dreg, lreg, rreg),
                             Inst::Seqz(dreg, dreg),
                         ]),
-                        Add => v.extend([Inst::Add(dreg, lreg, rreg),]),
-                        Sub => v.extend([Inst::Sub(dreg, lreg, rreg),]),
-                        Mul => v.extend([Inst::Mul(dreg, lreg, rreg),]),
-                        Div => v.extend([Inst::Div(dreg, lreg, rreg),]),
-                        Mod => v.extend([Inst::Rem(dreg, lreg, rreg),]),
+                        NotEq => v.extend([
+                            Inst::Xor(dreg, lreg, rreg),
+                            Inst::Snez(dreg, dreg),
+                        ]),
+                        And => v.extend([Inst::And(dreg, lreg, rreg)]),
+                        Or => v.extend([Inst::Or(dreg, lreg, rreg)]),
+                        Xor => v.extend([Inst::Xor(dreg, lreg, rreg)]),
+                        Lt => v.extend([Inst::Slt(dreg, lreg, rreg)]),
+                        Gt => v.extend([Inst::Sgt(dreg, lreg, rreg)]),
+                        Le => v.extend([
+                            Inst::Sgt(dreg, lreg, rreg),
+                            Inst::Xori(dreg, dreg, 1),
+                        ]),
+                        Ge => v.extend([
+                            Inst::Slt(dreg, lreg, rreg),
+                            Inst::Xori(dreg, dreg, 1),
+                        ]),
+                        Add => v.extend([Inst::Add(dreg, lreg, rreg)]),
+                        Sub => v.extend([Inst::Sub(dreg, lreg, rreg)]),
+                        Mul => v.extend([Inst::Mul(dreg, lreg, rreg)]),
+                        Div => v.extend([Inst::Div(dreg, lreg, rreg)]),
+                        Mod => v.extend([Inst::Rem(dreg, lreg, rreg)]),
                         _ => todo!()
                     }
                 }

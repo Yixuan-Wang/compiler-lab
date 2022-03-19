@@ -6,8 +6,22 @@ use super::reg::RiscReg as Reg;
 /// 
 /// https://pku-minic.github.io/online-doc/#/misc-app-ref/riscv-insts
 pub enum RiscInst {
-    /// 异或 `xor rd, rs1, rs2`
+    /// 按位与 `and rd, rs1, rs2`
+    And(Reg, Reg, Reg),
+    /// 按位或 `and rd, rs1, rs2`
+    Or(Reg, Reg, Reg),
+    /// 按位异或 `xor rd, rs1, rs2`
     Xor(Reg, Reg, Reg),
+    /// 按位与立即数 `andi rd, rs, imm`
+    Andi(Reg, Reg, i32),
+    /// 按位或立即数 `ori rd, rs, imm`
+    Ori(Reg, Reg, i32),
+    /// 按位异或立即数 `xori rd, rs, imm`
+    Xori(Reg, Reg, i32),
+    /// 小于 `slt rd, rs1, rs2`
+    Slt(Reg, Reg, Reg),
+    /// 大于 `sgt rd, rs1, rs2`
+    Sgt(Reg, Reg, Reg),
     /// 加 `add rd, rs1, rs2`
     Add(Reg, Reg, Reg),
     /// 减 `sub rd, rs1, rs2`
@@ -34,7 +48,14 @@ impl Display for RiscInst {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use self::RiscInst::*;
         match self {
+            And(rd, rs1, rs2) => write!(f, "and {rd}, {rs1}, {rs2}"),
+            Or(rd, rs1, rs2) => write!(f, "or {rd}, {rs1}, {rs2}"),
             Xor(rd, rs1, rs2) => write!(f, "xor {rd}, {rs1}, {rs2}"),
+            Andi(rd, rs, i) => write!(f, "andi {rd}, {rs}, {i}"),
+            Ori(rd, rs, i) => write!(f, "ori {rd}, {rs}, {i}"),
+            Xori(rd, rs, i) => write!(f, "xori {rd}, {rs}, {i}"),
+            Slt(rd, rs1, rs2) => write!(f, "slt {rd}, {rs1}, {rs2}"),
+            Sgt(rd, rs1, rs2) => write!(f, "sgt {rd}, {rs1}, {rs2}"),
             Add(rd, rs1, rs2) => write!(f, "add {rd}, {rs1}, {rs2}"),
             Sub(rd, rs1, rs2) => write!(f, "sub {rd}, {rs1}, {rs2}"),
             Mul(rd, rs1, rs2) => write!(f, "mul {rd}, {rs1}, {rs2}"),
