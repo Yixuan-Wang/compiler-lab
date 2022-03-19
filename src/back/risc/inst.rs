@@ -20,8 +20,8 @@ pub enum RiscInst {
     Rem(Reg, Reg, Reg),
     /// 判零 `seqz rd, rs`
     Seqz(Reg, Reg),
-    /// 非零 `senz rd, rs`
-    Senz(Reg, Reg),
+    /// 非零 `snez rd, rs`
+    Snez(Reg, Reg),
     /// 返回 `ret`
     Ret,
     /// 加载立即数 `li rd, imm`
@@ -41,7 +41,7 @@ impl Display for RiscInst {
             Div(rd, rs1, rs2) => write!(f, "div {rd}, {rs1}, {rs2}"),
             Rem(rd, rs1, rs2) => write!(f, "rem {rd}, {rs1}, {rs2}"),
             Seqz(rd, rs) => write!(f, "seqz {rd}, {rs}"),
-            Senz(rd, rs) => write!(f, "senz {rd}, {rs}"),
+            Snez(rd, rs) => write!(f, "snez {rd}, {rs}"),
             Ret => write!(f, "ret"),
             Li(r, i) => write!(f, "li {r}, {i}"),
             Mv(rd, rs) => write!(f, "mv {rd}, {rs}"),
