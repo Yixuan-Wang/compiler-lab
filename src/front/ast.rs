@@ -86,7 +86,7 @@ pub enum StmtKind {
 // }
 
 #[derive(Debug)]
-pub struct Exp(pub AddExp);
+pub struct Exp(pub LOrExp);
 
 #[derive(Debug)]
 pub enum PrimaryExp {
@@ -135,4 +135,42 @@ pub enum AddExp {
 pub enum AddOp {
     Add,
     Sub,
+}
+
+#[derive(Debug)]
+pub enum LOrExp {
+    Unary(LAndExp),
+    Binary(Box<LOrExp>, LAndExp),
+}
+
+#[derive(Debug)]
+pub enum LAndExp {
+    Unary(EqExp),
+    Binary(Box<LAndExp>, EqExp),
+}
+
+#[derive(Debug)]
+pub enum EqExp {
+    Unary(RelExp),
+    Binary(Box<EqExp>, EqOp, RelExp),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum EqOp {
+    Eq,
+    Ne,
+}
+
+#[derive(Debug)]
+pub enum RelExp {
+    Unary(AddExp),
+    Binary(Box<RelExp>, RelOp, AddExp),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum RelOp {
+    Lt,
+    Gt,
+    Le,
+    Ge,
 }

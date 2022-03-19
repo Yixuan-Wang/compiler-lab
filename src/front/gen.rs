@@ -110,3 +110,85 @@ impl<'f> Generate<'f> for ast::AddExp {
         }
     }
 }
+
+impl<'f> Generate<'f> for ast::RelExp {
+    type Eval = ir::Value;
+    fn generate(&self, ctx: &'f mut Context) -> Self::Eval {
+        use ast::RelOp::*;
+        match self {
+            Self::Unary(p) => p.generate(ctx),
+            Self::Binary(b, o, u) => {
+                let v = b.generate(ctx);
+                let u = u.generate(ctx);
+                let inst = match o {
+                    Lt => ctx.add_mid_value(val!(binary(ir::BinaryOp::Lt, v, u))),
+                    Gt => ctx.add_mid_value(val!(binary(ir::BinaryOp::Gt, v, u))),
+                    Le => ctx.add_mid_value(val!(binary(ir::BinaryOp::Le, v, u))),
+                    Ge => ctx.add_mid_value(val!(binary(ir::BinaryOp::Ge, v, u))),
+                };
+                ctx.insert_inst(inst, ctx.curr());
+                inst
+            }
+        }
+    }
+}
+
+impl<'f> Generate<'f> for ast::EqExp {
+    type Eval = ir::Value;
+    fn generate(&self, ctx: &'f mut Context) -> Self::Eval {
+        use ast::EqOp::*;
+        match self {
+            Self::Unary(p) => p.generate(ctx),
+            Self::Binary(b, o, u) => {
+                let v = b.generate(ctx);
+                let u = u.generate(ctx);
+                let inst = match o {
+                    Eq => ctx.add_mid_value(val!(binary(ir::BinaryOp::Eq, v, u))),
+                    Ne => ctx.add_mid_value(val!(binary(ir::BinaryOp::NotEq, v, u))),
+                };
+                ctx.insert_inst(inst, ctx.curr());
+                inst
+            }
+        }
+    }
+}
+
+impl<'f> Generate<'f> for ast::LAndExp {
+    type Eval = ir::Value;
+    fn generate(&self, ctx: &'f mut Context) -> Self::Eval {
+        match self {
+            Self::Unary(p) => p.generate(ctx),
+            Self::Binary(b, u) => {
+                let v = b.generate(ctx);
+                let u = u.generate(ctx);
+                let zero = ctx.add_value(val!(integer(0)), None);
+                let inst1 = ctx.add_mid_value(val!(binary(ir::BinaryOp::NotEq, v, zero)));
+                ctx.insert_inst(inst1, ctx.curr());
+                let inst2 = ctx.add_mid_value(val!(binary(ir::BinaryOp::NotEq, u, zero)));
+                ctx.insert_inst(inst2, ctx.curr());
+                let inst3 = ctx.add_mid_value(val!(binary(ir::BinaryOp::And, inst1, inst2)));
+                ctx.insert_inst(inst3, ctx.curr());
+                inst3
+            }
+        }
+    }
+}
+
+impl<'f> Generate<'f> for ast::LOrExp {
+    type Eval = ir::Value;
+    fn generate(&self, ctx: &'f mut Context) -> Self::Eval {
+        match self {
+            Self::Unary(p) => p.generate(ctx),
+            Self::Binary(b, u) => {
+                let v = b.generate(ctx);
+                let u = u.generate(ctx);
+                let zero = ctx.add_value(val!(integer(0)), None);
+                let inst1 = ctx.add_mid_value(val!(binary(ir::BinaryOp::Or, v, u)));
+                ctx.insert_inst(inst1, ctx.curr());
+                let inst2 = ctx.add_mid_value(val!(binary(ir::BinaryOp::NotEq, inst1, zero)));
+                ctx.insert_inst(inst2, ctx.curr());
+                inst2
+            }
+        }
+    }
+}

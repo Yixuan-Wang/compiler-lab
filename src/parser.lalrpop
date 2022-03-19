@@ -33,7 +33,7 @@ ReturnStmt: Stmt = {
     "return" <r:Exp> ";" => Stmt { kind: StmtKind::Return(r) }
 }
 
-Exp: Exp = AddExp => Exp(<>);
+Exp: Exp = LOrExp => Exp(<>);
 
 PrimaryExp: PrimaryExp = {
     "(" <Exp> ")" => PrimaryExp::Exp(Box::new(<>)),
@@ -72,6 +72,38 @@ AddExp: AddExp = {
 AddOp: AddOp = {
     "+" => AddOp::Add,
     "-" => AddOp::Sub,
+}
+
+RelExp: RelExp = {
+    <AddExp> => RelExp::Unary(<>),
+    <l:RelExp> <o:RelOp> <r:AddExp> => RelExp::Binary(Box::new(l), o, r),
+}
+
+RelOp: RelOp = {
+    "<" => RelOp::Lt,
+    ">" => RelOp::Gt,
+    "<=" => RelOp::Le,
+    ">=" => RelOp::Ge,
+}
+
+EqExp: EqExp = {
+    <RelExp> => EqExp::Unary(<>),
+    <l:EqExp> <o:EqOp> <r:RelExp> => EqExp::Binary(Box::new(l), o, r),
+}
+
+EqOp: EqOp = {
+    "==" => EqOp::Eq,
+    "!=" => EqOp::Ne,
+}
+
+LAndExp: LAndExp = {
+    <EqExp> => LAndExp::Unary(<>),
+    <l:LAndExp> "&&" <r:EqExp> => LAndExp::Binary(Box::new(l), r),
+}
+
+LOrExp: LOrExp = {
+    <LAndExp> => LOrExp::Unary(<>),
+    <l:LOrExp> "||" <r:LAndExp> => LOrExp::Binary(Box::new(l), r),
 }
 
 IDENT: String = r"[A-Za-z_][A-Za-z0-9_]+" => <>.to_string();
