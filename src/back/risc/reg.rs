@@ -1,16 +1,19 @@
 use std::fmt::Display;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RiscReg {
-    A0,
-    A1,
+    A(u8),
+    T(u8),
+    X0,
 }
 
 impl Display for RiscReg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use self::RiscReg::*;
         match self {
-            A0 => write!(f, "a0"),
-            A1 => write!(f, "a1"),
+            A(i) => write!(f, "a{i}"),
+            T(i) => write!(f, "t{i}"),
+            X0 => write!(f, "x0"),
         }
     }
 }

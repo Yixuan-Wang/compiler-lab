@@ -6,8 +6,6 @@ use std::fmt::Display;
 pub use inst::*;
 pub use reg::*;
 
-pub struct Risc(Vec<RiscItem>);
-
 pub enum RiscItem {
     Text,
     Data,

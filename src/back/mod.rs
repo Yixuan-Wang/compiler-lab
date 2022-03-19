@@ -1,13 +1,17 @@
 use std::error::Error;
 
 use crate::{front::Ir, WrapProgram};
-use koopa::ir;
 
 mod context;
 mod risc;
+mod gen;
+mod allo;
 
 use context::Context;
-use risc::RiscItem;
+use risc::RiscItem as Item;
+
+use self::{allo::Allo, gen::Generate};
+
 
 pub struct Target(pub String);
 
@@ -21,11 +25,27 @@ impl TryFrom<Ir> for Target {
     fn try_from(ir: Ir) -> Result<Self, Self::Error> {
         let mut program = ir.0;
         let funcs = program.func_layout().to_vec();
-        let mut text = vec![RiscItem::Text, RiscItem::Global("main".to_string())];
+        let mut text = vec![Item::Text, Item::Global("main".to_string())];
+
         text.extend(funcs.into_iter().flat_map(|func| {
             let ctx = Context::new(&mut program, func);
-            ctx.generate()
+            let mut allo = Allo::new();
+            let name = unsafe { ctx.func().name().get_unchecked(1..) };
+            let mut insts = vec![
+                Item::Label(name.to_string())
+            ];
+            for (_bb, node) in ctx.func().layout().bbs() {
+                insts.extend(
+                    node.insts()
+                        .keys()
+                        .flat_map(|&val| val.generate(&ctx, &mut allo))
+                        .map(|inst| Item::Inst(inst))
+                );
+            };
+            insts.push(Item::Blank);
+            insts
         }));
+
         Ok(Target(
             text.iter()
                 .map(|i| format!("{i}"))
@@ -45,33 +65,8 @@ impl TryFrom<Ir> for Target {
 //         for (_, node) in self.layout().bbs() {
 //             for &inst in node.insts().keys() {
 //               let value_data = self.dfg().value(inst);
-//               value_data.instruct();
+//               value_data.generate();
 //             }
 //         }
 //     }
 // }
-
-/// [`Instruct`] 处理 [`ir::entities::ValueData`]，将每一条语句从 Koopa 内存形式转化为 RISC-V 指令
-trait Instruct<'a> {
-    fn instruct(&self, ctx: &'a Context) -> Vec<risc::RiscInst>;
-}
-
-impl<'a> Instruct<'a> for ir::entities::ValueData {
-    fn instruct(&self, ctx: &'a Context) -> Vec<risc::RiscInst> {
-        use ir::entities::ValueKind::*;
-        use risc::{RiscInst as Inst, RiscReg as Reg};
-        match self.kind() {
-            Return(v) => match v.value() {
-                Some(v) => match ctx.value(v).kind() {
-                    Integer(i) => {
-                        vec![Inst::Li(Reg::A0, i.value()), Inst::Ret]
-                    }
-                    _ => todo!(),
-                },
-                None => todo!(),
-            },
-            Integer(_) => unimplemented!("Integer is not instruction"),
-            _ => todo!(),
-        }
-    }
-}

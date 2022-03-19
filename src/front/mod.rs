@@ -1,8 +1,7 @@
 pub mod ast;
-
-#[macro_use]
-mod context;
+#[macro_use] mod context;
 mod table;
+mod gen;
 
 use lalrpop_util::lalrpop_mod;
 lalrpop_mod! {
@@ -15,6 +14,7 @@ use koopa::{ir::{Program, builder_traits::*}, back::KoopaGenerator};
 
 use self::table::Table;
 use self::context::{Context};
+use self::gen::Generate;
 
 pub fn into_ast(source: String) -> Vec<ast::Item> {
     let parser = parser::CompUnitParser::new();
@@ -87,35 +87,9 @@ impl<'a> Declare<'a> for ast::Item {
                 // let jump_cur = ctx.add_value(val!(jump(cur)), None);
                 // ctx.insert_inst(jump_cur, ctx.entry());
                 for stmt in &func.block {
-                    stmt.instruct(&mut ctx);
+                    stmt.generate(&mut ctx);
                 }
             }
         };
     }
 }
-
-/// [`Instruct`] 处理语句（[`ast::StmtKind`]），将每一条语句转化为 Koopa 内存形式
-trait Instruct<'f> {
-    fn instruct(&self, ctx: &'f mut Context);
-}
-
-impl<'f> Instruct<'f> for ast::StmtKind {
-    fn instruct(&self, ctx: &'f mut Context) {
-        use ast::StmtKind::*;
-        match self {
-            Return(i) => {
-                // let (curr, end) = (ctx.curr(), ctx.end());
-                let entry = ctx.entry();
-                // let ret_val = ctx.table.get_var("%ret");
-                let return_cnst = ctx.add_value(val!(integer(*i)), None);
-                // let store = ctx.add_value(val!(store(return_cnst, ret_val)), None);
-                // let jump = ctx.add_value(val!(jump(end)), None);
-                // ctx.insert_inst(store, curr);
-                // ctx.insert_inst(jump, curr);
-                let ret = ctx.add_value(val!(ret(Some(return_cnst))), None);
-                ctx.insert_inst(ret, entry);
-            }
-        };
-    }
-}
-
