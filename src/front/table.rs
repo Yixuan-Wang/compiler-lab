@@ -2,33 +2,30 @@ use std::{collections::HashMap};
 
 use koopa::ir;
 
-#[derive(PartialEq, Eq)]
-pub enum Symbol {
-    // Func(ir::Function),
-    Var(ir::Value),
+pub struct Table {
+    pub func: HashMap<String, ir::Function>,
+    pub scope: Vec<HashMap<String, ir::Value>>,
 }
-
-pub struct Table(pub Vec<HashMap<String, Symbol>>);
 
 impl Table {
     pub fn new() -> Table {
-        Table(vec![HashMap::new()])
+        Table {
+            func: HashMap::new(),
+            scope: vec![HashMap::new()],
+        }
     }
 
-    pub fn insert_var(&mut self, name: String, value: ir::Value) {
-        self.0
+    pub fn insert_val(&mut self, name: &str, value: ir::Value) {
+        self.scope
             .last_mut()
             .unwrap()
-            .insert(name, Symbol::Var(value));
+            .insert(name.to_string(), value);
     }
 
-    pub fn get_var(self, name: &str) -> Option<ir::Value> {
-        use Symbol::*;
-        for scope in self.0.iter().rev() {
+    pub fn get_val(&self, name: &str) -> Option<ir::Value> {
+        for scope in self.scope.iter().rev() {
             match scope.get(name) {
-                Some(sym) => {
-                    if let Var(val) = sym { return Some(*val); }
-                },
+                Some(val) => return Some(*val),
                 None => (),
             }
         }

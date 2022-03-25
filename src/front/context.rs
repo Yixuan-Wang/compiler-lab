@@ -15,7 +15,7 @@ pub struct Context<'a> {
     pub program: &'a mut ir::Program,
     pub globals: &'a mut Table,
     pub func: ir::Function,
-    pub table: Table,
+    table: Table,
     pub auton: Autonum,
     entry: Option<ir::BasicBlock>,
     end: Option<ir::BasicBlock>,
@@ -85,7 +85,7 @@ impl<'a: 'f, 'f> Context<'a> {
             Int32 => {
                 let val = self.add_value(val!(alloc(Type::get_i32())), Some("%ret"));
                 self.insert_inst(val, entry);
-                self.table.insert_var("%ret".to_string(), val);
+                self.table.Mod("%ret".to_string(), val);
                 Some(val)
             }
             Unit => None,
@@ -195,5 +195,15 @@ impl<'a: 'f, 'f> Context<'a> {
              .bbs()
              .back_key()
              .unwrap()
+    }
+
+    /// Return the current symbol table
+    pub fn table(&self) -> &Table {
+        &self.table
+    }
+
+    /// Return the mutable variant of current symbol table
+    pub fn table_mut(&mut self) -> &mut Table {
+        &mut self.table
     }
 }
