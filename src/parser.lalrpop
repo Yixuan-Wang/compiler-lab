@@ -34,10 +34,13 @@ Block: Vec<Stmt> = "{" <Stmt*> "}";
 
 Stmt: Stmt = {
     DeclStmt,
+    AssignStmt,
     ReturnStmt,
 }
 
 DeclStmt: Stmt = Decl => Stmt { kind: StmtKind::Decl(<>) };
+
+AssignStmt: Stmt = <LVal> "=" <Exp> ";" => Stmt { kind: StmtKind::Assign(<>) };
 
 ReturnStmt: Stmt = {
     "return" <r:Exp> ";" => Stmt { kind: StmtKind::Return(r) }
@@ -45,24 +48,38 @@ ReturnStmt: Stmt = {
 
 Decl: Vec<Decl> = {
     "const" <ty: VAL_TYPE> <v: Comma<ConstDef>> ";" => {
+        v.into_iter().map(|(ident, constexp)| {
+            Decl {
+                ident,
+                exp: Some(constexp),
+                ty: Ty::new(&ty),
+                kind: SymKind::Const,
+            }
+        }).collect()
+    },
+    <ty: VAL_TYPE> <v: Comma<VarDef>> ";" => {
         v.into_iter().map(|(ident, exp)| {
             Decl {
                 ident,
                 exp,
                 ty: Ty::new(&ty),
-                kind: SymKind::Const,
+                kind: SymKind::Var,
             }
         }).collect()
-    }
+    },
 }
 
 ConstDef: (String, Exp) = <IDENT> "=" <ConstExp>;
+
+VarDef: (String, Option<Exp>) = <IDENT> <("=" <VarExp>)?>;
 
 LVal: LVal = IDENT => LVal(<>);
 
 Exp: Exp = LOrExp => Exp(<>);
 
 ConstExp: Exp = Exp;
+
+VarExp: Exp = Exp;
 
 PrimaryExp: PrimaryExp = {
     "(" <Exp> ")" => PrimaryExp::Exp(Box::new(<>)),

@@ -123,12 +123,15 @@ impl<'f> Eval<'f, i32> for PrimaryExp {
 impl<'f> Eval<'f, i32> for LVal {
     fn eval(&self, ctx: &'f Context) -> Option<i32> {
         use koopa::ir::entities::ValueKind;
-        ctx.table().get_val(&self.0).map(|v| {
-            match ctx.value(v).kind() {
-                ValueKind::Integer(v) => v.value(),
-                _ => unreachable!(),
-            }
-        })
+        match ctx.table().get_val(&self.0) {
+            Some(v) => {
+                match ctx.value(v).kind() {
+                    ValueKind::Integer(v) => Some(v.value()),
+                    _ => None,
+                }
+            },
+            None => None,
+        }
     }
 }
  

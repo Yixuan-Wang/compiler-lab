@@ -2,8 +2,8 @@
 // use crate::auton;
 use crate::{s, WrapProgram};
 
-use super::context::Context;
 use super::ast;
+use super::context::Context;
 use koopa::ir::{self, builder_traits::*};
 
 mod eval;
@@ -20,11 +20,22 @@ impl<'f> Generate<'f> for ast::StmtKind {
         use ast::StmtKind::*;
         match self {
             Decl(v) => v.iter().for_each(|d| d.generate(ctx)),
+            Assign(l, e) => {
+                let lval_handle = ctx.table().get_val(&l.0).expect(&format!(
+                    "SemanticsError[UndefinedSymbol]: '{}' is used before definition.",
+                    &l.0
+                ));
+                let lval = ctx.value(lval_handle);
+                assert!(!lval.kind().is_const(), "SemanticsError[InvalidLValAssignment]: '{}' cannot be assigned to.", &l.0);
+                let exp_handle = e.generate(ctx);
+                let store = ctx.add_value(val!(store(exp_handle, lval_handle)), None);
+                ctx.insert_inst(store, ctx.curr());
+            },
             Return(r) => {
                 // let (curr, end) = (ctx.curr(), ctx.end());
                 let entry = ctx.entry();
                 // let ret_val = ctx.table.get_var("%ret");
-                let ret_val = r.generate(ctx);                
+                let ret_val = r.generate(ctx);
                 // let store = ctx.add_value(val!(store(return_cnst, ret_val)), None);
                 // let jump = ctx.add_value(val!(jump(end)), None);
                 // ctx.insert_inst(store, curr);
@@ -43,12 +54,46 @@ impl<'f> Generate<'f> for ast::Decl {
         use eval::Eval;
         match self.kind {
             SymKind::Const => {
-                let val = self.exp.eval(ctx).expect(&format!("SemanticsError[ConstEvalFailure]: '{}' cannot be evaluated during compile time.", self.ident));
-                let const_val = ctx.add_value(val!(integer(val)), Some(format!("@{}", &self.ident)));
+                let val = self.exp.as_ref().unwrap().eval(ctx).expect(&format!("SemanticsError[ConstEvalFailure]: '{}' cannot be evaluated during compile time.", self.ident));
+                let const_val =
+                    ctx.add_value(val!(integer(val)), None);
                 ctx.table_mut().insert_val(&self.ident, const_val);
+            }
+            SymKind::Var => {
+                let v = match &self.exp {
+                    Some(e) => {
+                        match e.eval(ctx) {
+                            Some(v) => ctx.add_value(val!(integer(v)), None),
+                            None => e.generate(ctx),
+                        }
+                    }
+                    None => ctx.add_value(val!(undef(ir::Type::get_i32())), None),
+                };
+                let alloc = ctx.add_value(val!(alloc(ir::Type::get_i32())), Some(format!("@{}", &self.ident)));
+                ctx.table_mut().insert_val(&self.ident, alloc);
+                ctx.insert_inst(alloc, ctx.curr());
+                let store = ctx.add_value(val!(store(v, alloc)), None);
+                ctx.insert_inst(store, ctx.curr());
             },
-            SymKind::Var => todo!("Milestone 4.2.1")
         };
+    }
+}
+
+impl<'f> Generate<'f> for ast::LVal {
+    type Val = ir::Value;
+    fn generate(&self, ctx: &'f mut Context) -> Self::Val {
+        let lval_handle = ctx.table().get_val(&self.0).expect(&format!(
+            "SemanticsError[UndefinedSymbol]: '{}' is used before definition.",
+            &self.0
+        ));
+        let lval = ctx.value(lval_handle);
+        if lval.kind().is_const() {
+            lval_handle
+        } else {
+            let load = ctx.add_mid_value(val!(load(lval_handle)));
+            ctx.insert_inst(load, ctx.curr());
+            load
+        }
     }
 }
 
@@ -56,11 +101,7 @@ impl<'f> Generate<'f> for ast::PrimaryExp {
     type Val = ir::Value;
     fn generate(&self, ctx: &'f mut Context) -> ir::Value {
         match self {
-            Self::LVal(l) => {
-                ctx.table()
-                .get_val(&l.0)
-                .expect(&format!("SemanticsError[UndefinedSymbol]: '{}' is used before definition.", &l.0))
-            }
+            Self::LVal(l) => l.generate(ctx),
             Self::Literal(i) => ctx.add_value(val!(integer(*i)), None),
             Self::Exp(b) => b.generate(ctx),
         }

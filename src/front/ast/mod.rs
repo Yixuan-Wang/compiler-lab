@@ -78,6 +78,7 @@ impl DerefMut for Stmt {
 #[derive(Debug)]
 pub enum StmtKind {
     Decl(Vec<Decl>),
+    Assign(LVal, Exp),
     Return(Exp),
 }
 
@@ -96,7 +97,7 @@ pub struct Decl {
     pub ident: String,
     pub ty: Ty,
     pub kind: SymKind,
-    pub exp: Exp,
+    pub exp: Option<Exp>,
 }
 
 #[derive(Debug)]
