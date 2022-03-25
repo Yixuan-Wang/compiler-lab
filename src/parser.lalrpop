@@ -106,6 +106,6 @@ LOrExp: LOrExp = {
     <l:LOrExp> "||" <r:LAndExp> => LOrExp::Binary(Box::new(l), r),
 }
 
-IDENT: String = r"[A-Za-z_][A-Za-z0-9_]+" => <>.to_string();
+IDENT: String = r"[A-Za-z_][A-Za-z0-9_]*" => <>.to_string();
 
 FUNC_TYPE: String = "int" => <>.to_string();
