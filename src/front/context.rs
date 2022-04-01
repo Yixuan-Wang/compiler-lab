@@ -7,15 +7,15 @@ use koopa::ir::{
 
 use crate::{WrapProgram, util::autonum::Autonum};
 
-use super::{ast, table::Table};
+use super::{ast, symtab::Symtab};
 
 /// Context is a high-level [`koopa::ir::Program`] wrapper around a [`koopa::ir::Function`]
 /// with its symbol table [`Table`].
 pub struct Context<'a> {
     pub program: &'a mut ir::Program,
-    pub globals: &'a mut Table,
+    pub globals: &'a mut Symtab,
     pub func: ir::Function,
-    table: Table,
+    table: Symtab,
     pub auton: Autonum,
     entry: Option<ir::BasicBlock>,
     end: Option<ir::BasicBlock>,
@@ -37,7 +37,7 @@ impl<'a> WrapProgram for Context<'a> {
 impl<'a: 'f, 'f> Context<'a> {
     pub fn new(
         program: &'a mut ir::Program,
-        globals: &'a mut Table,
+        globals: &'a mut Symtab,
         func: &'f ast::Func,
     ) -> Context<'a> {
         let mut this = Context::from(program, globals, func).unwrap();
@@ -47,7 +47,7 @@ impl<'a: 'f, 'f> Context<'a> {
 
     fn from(
         program: &'a mut ir::Program,
-        globals: &'a mut Table,
+        globals: &'a mut Symtab,
         func: &'f ast::Func,
     ) -> Result<Self, Box<dyn Error>> {
         // let ty: ir::Type = (&func.output).into();
@@ -67,7 +67,7 @@ impl<'a: 'f, 'f> Context<'a> {
             func,
             entry: None,
             end: None,
-            table: Table::new(),
+            table: Symtab::new(),
             auton: Autonum::new(),
         })
     }
@@ -198,12 +198,12 @@ impl<'a: 'f, 'f> Context<'a> {
     }
 
     /// Return the current symbol table
-    pub fn table(&self) -> &Table {
+    pub fn table(&self) -> &Symtab {
         &self.table
     }
 
     /// Return the mutable variant of current symbol table
-    pub fn table_mut(&mut self) -> &mut Table {
+    pub fn table_mut(&mut self) -> &mut Symtab {
         &mut self.table
     }
 }

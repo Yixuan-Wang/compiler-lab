@@ -2,14 +2,14 @@ use std::{collections::HashMap};
 
 use koopa::ir;
 
-pub struct Table {
+pub struct Symtab {
     pub func: HashMap<String, ir::Function>,
     pub scope: Vec<HashMap<String, ir::Value>>,
 }
 
-impl Table {
-    pub fn new() -> Table {
-        Table {
+impl Symtab {
+    pub fn new() -> Symtab {
+        Symtab {
             func: HashMap::new(),
             scope: vec![HashMap::new()],
         }

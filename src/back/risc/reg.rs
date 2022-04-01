@@ -4,6 +4,7 @@ use std::fmt::Display;
 pub enum RiscReg {
     A(u8),
     T(u8),
+    Sp,
     X0,
 }
 
@@ -13,6 +14,7 @@ impl Display for RiscReg {
         match self {
             A(i) => write!(f, "a{i}"),
             T(i) => write!(f, "t{i}"),
+            Sp => write!(f, "sp"),
             X0 => write!(f, "x0"),
         }
     }

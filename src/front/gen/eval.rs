@@ -1,5 +1,3 @@
-use koopa::ir::values::Integer;
-
 use crate::WrapProgram;
 
 use super::{ast::*, Context};

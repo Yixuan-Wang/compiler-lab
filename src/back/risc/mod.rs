@@ -12,8 +12,11 @@ pub enum RiscItem {
     Global(String),
     Label(String),
     Inst(RiscInst),
+    Comment(String),
     Blank,
 }
+
+pub const MAX_IMM: i32 = 2047;
 
 impl Display for RiscItem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -24,6 +27,7 @@ impl Display for RiscItem {
             Data => write!(f, "  .data"),
             Label(l) => write!(f, "{l}:"),
             Inst(i) => write!(f, "  {i}"),
+            Comment(c) => write!(f, "# {c}"),
             Blank => write!(f, ""),
         }
     }

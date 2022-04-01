@@ -10,7 +10,7 @@ mod allo;
 use context::Context;
 use risc::RiscItem as Item;
 
-use self::{allo::Allo, gen::Generate};
+use self::gen::Generate;
 
 
 pub struct Target(pub String);
@@ -29,17 +29,17 @@ impl TryFrom<Ir> for Target {
 
         text.extend(funcs.into_iter().flat_map(|func| {
             let ctx = Context::new(&mut program, func);
-            let mut allo = Allo::new();
             let name = unsafe { ctx.func().name().get_unchecked(1..) };
             let mut insts = vec![
-                Item::Label(name.to_string())
+                Item::Label(name.to_string()),
             ];
+            insts.extend(ctx.prologue().into_iter().map(Item::Inst));
             for (_bb, node) in ctx.func().layout().bbs() {
                 insts.extend(
                     node.insts()
                         .keys()
-                        .flat_map(|&val| val.generate(&ctx, &mut allo))
-                        .map(|inst| Item::Inst(inst))
+                        .flat_map(|&val| val.generate(&ctx))
+                        .map(Item::Inst)
                 );
             };
             insts.push(Item::Blank);
