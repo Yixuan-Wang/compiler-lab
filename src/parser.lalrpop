@@ -11,6 +11,13 @@ match {
 
 // r"//([^!\n\r][^\n\r]*[\n\r]*)+" => {},
 
+Comma<T>: Vec<T> = {
+    <mut v:(<T> ",")*> <e:T> => {
+        v.push(e);
+        v
+    }
+};
+
 pub CompUnit: Vec<Item> = <Item*>;
 
 Item: Item = {
@@ -18,25 +25,69 @@ Item: Item = {
 }
 
 Func: Func = {
-    <t:FUNC_TYPE> <i:IDENT> "(" ")" "{" <b:Block> "}" => {
+    <t:FUNC_TYPE> <i:IDENT> "(" ")" <b:Block> => {
         Func::new(i, t, b)
     }
 }
 
-Block: Vec<Stmt> = <Stmt*>;
+Block: Vec<Stmt> = "{" <Stmt*> "}";
 
 Stmt: Stmt = {
+    DeclStmt,
+    AssignStmt,
     ReturnStmt,
 }
+
+DeclStmt: Stmt = Decl => Stmt { kind: StmtKind::Decl(<>) };
+
+AssignStmt: Stmt = <LVal> "=" <Exp> ";" => Stmt { kind: StmtKind::Assign(<>) };
 
 ReturnStmt: Stmt = {
     "return" <r:Exp> ";" => Stmt { kind: StmtKind::Return(r) }
 }
 
+Decl: Vec<Decl> = {
+    "const" <ty: VAL_TYPE> <v: Comma<ConstDef>> ";" => {
+        v.into_iter().map(|(ident, constexp)| {
+            Decl {
+                ident,
+                exp: Some(constexp),
+                ty: Ty::new(&ty),
+                kind: SymKind::Const,
+            }
+        }).collect()
+    },
+    <ty: VAL_TYPE> <v: Comma<VarDef>> ";" => {
+        v.into_iter().map(|(ident, exp)| {
+            Decl {
+                ident,
+                exp,
+                ty: Ty::new(&ty),
+                kind: SymKind::Var,
+            }
+        }).collect()
+    },
+}
+
+ConstDef: (String, Exp) = <IDENT> "=" <ConstExp>;
+
+VarDef: (String, Option<Exp>) = <IDENT> <("=" <VarExp>)?>;
+
+LVal: LVal = IDENT => LVal(<>);
+
 Exp: Exp = LOrExp => Exp(<>);
+
+ConstExp: Exp = Exp;
+
+VarExp: Exp = Exp;
 
 PrimaryExp: PrimaryExp = {
     "(" <Exp> ")" => PrimaryExp::Exp(Box::new(<>)),
+    LVal => PrimaryExp::LVal(<>),
+    Number
+}
+
+Number: PrimaryExp = {
     r"(-|\+)?([1-9][0-9]*|0)" => PrimaryExp::literal(<>, 10, 0),
     r"0[0-7]+" => PrimaryExp::literal(<>, 8, 1),
     r"0[xX][0-9a-fA-F]+" => PrimaryExp::literal(<>, 16, 2),
@@ -106,6 +157,8 @@ LOrExp: LOrExp = {
     <l:LOrExp> "||" <r:LAndExp> => LOrExp::Binary(Box::new(l), r),
 }
 
-IDENT: String = r"[A-Za-z_][A-Za-z0-9_]+" => <>.to_string();
+IDENT: String = r"[A-Za-z_][A-Za-z0-9_]*" => <>.to_string();
 
 FUNC_TYPE: String = "int" => <>.to_string();
+
+VAL_TYPE: String = "int" => <>.to_string();

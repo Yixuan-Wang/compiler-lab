@@ -12,11 +12,11 @@ pub enum RiscInst {
     Or(Reg, Reg, Reg),
     /// 按位异或 `xor rd, rs1, rs2`
     Xor(Reg, Reg, Reg),
-    /// 按位与立即数 `andi rd, rs, imm`
+    /// 按位与立即数 `andi rd, rs, imm12`
     Andi(Reg, Reg, i32),
-    /// 按位或立即数 `ori rd, rs, imm`
+    /// 按位或立即数 `ori rd, rs, imm12`
     Ori(Reg, Reg, i32),
-    /// 按位异或立即数 `xori rd, rs, imm`
+    /// 按位异或立即数 `xori rd, rs, imm12`
     Xori(Reg, Reg, i32),
     /// 小于 `slt rd, rs1, rs2`
     Slt(Reg, Reg, Reg),
@@ -24,6 +24,8 @@ pub enum RiscInst {
     Sgt(Reg, Reg, Reg),
     /// 加 `add rd, rs1, rs2`
     Add(Reg, Reg, Reg),
+    /// 加立即数 `addi rd, rs, imm12`
+    Addi(Reg, Reg, i32),
     /// 减 `sub rd, rs1, rs2`
     Sub(Reg, Reg, Reg),
     /// 乘 `mul rd, rs1, rs2`
@@ -42,6 +44,13 @@ pub enum RiscInst {
     Li(Reg, i32),
     /// 寄存器复制 `mv rd, rs` 
     Mv(Reg, Reg),
+    /// 取 `lw rs, imm12(rd)`（取 `rd+imm12` 存入 `rs`）
+    Lw(Reg, i32, Reg),
+    /// 存 `sw rs2, imm12(rs1)`（存 `rs2` 入 `rs1+imm2`）
+    Sw(Reg, i32, Reg),
+
+    /// 注释
+    Com(String),
 }
 
 impl Display for RiscInst {
@@ -57,6 +66,7 @@ impl Display for RiscInst {
             Slt(rd, rs1, rs2) => write!(f, "slt {rd}, {rs1}, {rs2}"),
             Sgt(rd, rs1, rs2) => write!(f, "sgt {rd}, {rs1}, {rs2}"),
             Add(rd, rs1, rs2) => write!(f, "add {rd}, {rs1}, {rs2}"),
+            Addi(rd, rs, i) => write!(f, "addi {rd}, {rs}, {i}"),
             Sub(rd, rs1, rs2) => write!(f, "sub {rd}, {rs1}, {rs2}"),
             Mul(rd, rs1, rs2) => write!(f, "mul {rd}, {rs1}, {rs2}"),
             Div(rd, rs1, rs2) => write!(f, "div {rd}, {rs1}, {rs2}"),
@@ -66,6 +76,10 @@ impl Display for RiscInst {
             Ret => write!(f, "ret"),
             Li(r, i) => write!(f, "li {r}, {i}"),
             Mv(rd, rs) => write!(f, "mv {rd}, {rs}"),
+            Lw(rs, of, rd) => write!(f, "lw {rs}, {of}({rd})"),
+            Sw(rs2, of, rs1) => write!(f, "sw {rs2}, {of}({rs1})"),
+
+            Com(c) => write!(f, "# {c}"),
         }
     }
 }

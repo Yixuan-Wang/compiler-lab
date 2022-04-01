@@ -1,6 +1,6 @@
 pub mod ast;
 #[macro_use] mod context;
-mod table;
+mod symtab;
 mod gen;
 
 use lalrpop_util::lalrpop_mod;
@@ -12,7 +12,7 @@ lalrpop_mod! {
 use std::{result, ops::{Deref, DerefMut}, io, error::Error};
 use koopa::{ir::{Program, builder_traits::*}, back::KoopaGenerator};
 
-use self::table::Table;
+use self::symtab::Symtab;
 use self::context::{Context};
 use self::gen::Generate;
 
@@ -53,7 +53,7 @@ impl TryFrom<Vec<ast::Item>> for Ir {
 
     fn try_from(value: Vec<ast::Item>) -> result::Result<Self, Self::Error> {
         let mut program = Program::new();
-        let mut globals = Table::new();
+        let mut globals = Symtab::new();
         for item in value {
             item.declare(&mut program, &mut globals)
         }
@@ -72,11 +72,11 @@ impl TryFrom<Ir> for String {
 
 /// [`Declare`] 处理 AST 中的条目（[`ast::Item`]）：全局常量、变量声明和函数，并为每一个函数生成上下文（[`Context`]）
 trait Declare<'a> {
-    fn declare(&self, program: &'a mut Program, globals: &'a mut Table);
+    fn declare(&self, program: &'a mut Program, globals: &'a mut Symtab);
 }
 
 impl<'a> Declare<'a> for ast::Item {
-    fn declare(&self, program: &'a mut Program, globals: &'a mut Table) {
+    fn declare(&self, program: &'a mut Program, globals: &'a mut Symtab) {
         use ast::ItemKind::*;
         match self.kind {
             Global() => unimplemented!(),
