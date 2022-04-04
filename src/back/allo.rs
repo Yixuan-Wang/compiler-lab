@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use koopa::ir;
 
 use crate::util::autonum::Autocount;
-use super::risc::RiscReg as Reg;
+use super::risc::{RiscReg as Reg, RiscInst};
 
 pub struct AlloReg {
     reg_allo: HashMap<ir::Value, Reg>,
@@ -46,12 +46,12 @@ impl AlloReg {
         self.reg_allo.get(&val)
     }
 
-    pub fn get_or_appoint(&mut self, val: ir::Value) -> Reg {
-        match self.get(val) {
-            Some(reg) => *reg,
-            None => self.allo_reg_t(val),
-        }
-    }
+    // pub fn get_or_appoint(&mut self, val: ir::Value) -> Reg {
+    //     match self.get(val) {
+    //         Some(reg) => *reg,
+    //         None => self.allo_reg_t(val),
+    //     }
+    // }
 
     pub fn contains_key(&self, val: ir::Value) -> bool {
         self.reg_allo.contains_key(&val)
@@ -92,7 +92,7 @@ impl AlloStack {
             Function(_, _) => unimplemented!(),
         };
         let size = match data.kind() {
-            Alloc(_) => ty_size,
+            Alloc(_) | Binary(_) => ty_size,
             _ => 0,
         };
         if size > 0 {

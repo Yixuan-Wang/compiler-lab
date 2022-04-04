@@ -36,6 +36,13 @@ impl<'a> Context<'a> {
         self.allo_reg.borrow_mut()
     }
 
+    pub fn with_allo_reg_mut<F, T>(&self, sth: F) -> T
+    where
+        F: Fn(RefMut<AlloReg>) -> T
+    {
+        sth(self.allo_reg.borrow_mut())
+    }
+
     pub fn on_reg(&self, val: ir::Value) -> bool {
         self.allo_reg().contains_key(val)
     }
@@ -53,7 +60,7 @@ impl<'a> Context<'a> {
     // }
 
     pub fn prologue(&self) -> Vec<RiscInst> {
-        use {RiscItem::*, RiscInst::*};
+        use RiscInst::*;
         let insts = self.func().layout().bbs().nodes().flat_map(|node| node.insts());
         insts.for_each(|(h, _)| {
             let d = self.value(*h);

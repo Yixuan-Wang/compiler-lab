@@ -8,6 +8,9 @@ use koopa::ir;
 
 use crate::WrapProgram;
 
+mod to_reg;
+use to_reg::ToReg;
+
 /// [`Generate`] 处理 [`ir::entities::ValueData`]，将每一条语句从 Koopa 内存形式转化为 RISC-V 指令
 pub trait Generate<'a> {
     fn generate(&self, ctx: &'a Context) -> Vec<risc::RiscInst>;
@@ -19,23 +22,12 @@ impl<'a> Generate<'a> for ir::entities::Value {
         use risc::{RiscInst as Inst, RiscReg as Reg};
         let value_data = ctx.value(*self);
         match value_data.kind() {
-            Return(val) => {
-                let mut v = match val.value() {
-                    Some(ret) => match ctx.value(ret).kind() {
-                        Integer(i) => {
-                            vec![Inst::Li(Reg::A(0), i.value())]
-                        }
-                        Binary(_) | Load(_) => {
-                            if !ctx.on_reg(ret) {
-                                ret.generate(ctx);
-                            };
-                            let retreg = *ctx.allo_reg().get(ret).unwrap();
-                            vec![Inst::Mv(Reg::A(0), retreg)]
-                        }
-                        _ => todo!(),
-                    },
-                    None => todo!(),
-                };
+            Return(r) => {
+                let mut v = vec![];
+                if let Some(val) = r.value() {
+                    let (reg, inst) = val.to_reg(ctx, Some(Reg::A(0)));
+                    v.extend(inst);
+                }
                 v.extend(ctx.epilogue());
                 v.push(Inst::Ret);
                 v
@@ -44,11 +36,25 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 use ir::BinaryOp::*;
                 let mut v = vec![];
                 if !ctx.on_reg(*self) {
-                    v.extend(bin.lhs().generate(ctx));
-                    v.extend(bin.rhs().generate(ctx));
-                    let lreg = ctx.allo_reg_mut().get_or_appoint(bin.lhs());
-                    let rreg = ctx.allo_reg_mut().get_or_appoint(bin.rhs());
+                    let (l, r) = (bin.lhs(), bin.rhs());
+                    v.extend(l.generate(ctx));
+                    v.extend(r.generate(ctx));
                     let dreg = ctx.allo_reg_mut().allo_reg_t(*self);
+                    let (lreg, linst) = l.to_reg(ctx, None);
+                    let (rreg, rinst) = r.to_reg(ctx, None);
+                    v.extend(linst);
+                    v.extend(rinst);
+                    // let lreg = ctx.allo_reg_mut().allo_reg_t(l);
+                    // let rreg = ctx.allo_reg_mut().allo_reg_t(r);
+                    
+                    // for (val, reg) in [(l, lreg), (r, rreg)] {
+                    //     if let Integer(i) = ctx.value(val).kind() {
+                    //         v.push(Inst::Li(reg, i.value()))
+                    //     } else {
+                    //         v.push(Inst::Lw(reg, *ctx.allo_stack().get(val).unwrap(), Reg::Sp))
+                    //     }
+                    // }
+                    let offset = *ctx.allo_stack().get(*self).unwrap();
                     match bin.op() {
                         Eq => v.extend([
                             Inst::Xor(dreg, lreg, rreg),
@@ -58,11 +64,11 @@ impl<'a> Generate<'a> for ir::entities::Value {
                             Inst::Xor(dreg, lreg, rreg),
                             Inst::Snez(dreg, dreg),
                         ]),
-                        And => v.extend([Inst::And(dreg, lreg, rreg)]),
-                        Or => v.extend([Inst::Or(dreg, lreg, rreg)]),
-                        Xor => v.extend([Inst::Xor(dreg, lreg, rreg)]),
-                        Lt => v.extend([Inst::Slt(dreg, lreg, rreg)]),
-                        Gt => v.extend([Inst::Sgt(dreg, lreg, rreg)]),
+                        And => v.push(Inst::And(dreg, lreg, rreg)),
+                        Or => v.push(Inst::Or(dreg, lreg, rreg)),
+                        Xor => v.push(Inst::Xor(dreg, lreg, rreg)),
+                        Lt => v.push(Inst::Slt(dreg, lreg, rreg)),
+                        Gt => v.push(Inst::Sgt(dreg, lreg, rreg)),
                         Le => v.extend([
                             Inst::Sgt(dreg, lreg, rreg),
                             Inst::Xori(dreg, dreg, 1),
@@ -71,17 +77,19 @@ impl<'a> Generate<'a> for ir::entities::Value {
                             Inst::Slt(dreg, lreg, rreg),
                             Inst::Xori(dreg, dreg, 1),
                         ]),
-                        Add => v.extend([Inst::Add(dreg, lreg, rreg)]),
-                        Sub => v.extend([Inst::Sub(dreg, lreg, rreg)]),
-                        Mul => v.extend([Inst::Mul(dreg, lreg, rreg)]),
-                        Div => v.extend([Inst::Div(dreg, lreg, rreg)]),
-                        Mod => v.extend([Inst::Rem(dreg, lreg, rreg)]),
+                        Add => v.push(Inst::Add(dreg, lreg, rreg)),
+                        Sub => v.push(Inst::Sub(dreg, lreg, rreg)),
+                        Mul => v.push(Inst::Mul(dreg, lreg, rreg)),
+                        Div => v.push(Inst::Div(dreg, lreg, rreg)),
+                        Mod => v.push(Inst::Rem(dreg, lreg, rreg)),
                         _ => todo!()
-                    }
+                    };
+                    v.push(Inst::Sw(dreg, offset, Reg::Sp))
                 }
                 v
             },
-            Integer(i) => {
+            Integer(_) => vec![],
+            /* {
                 if !ctx.on_reg(*self) {
                     if i.value() == 0 {
                         ctx.allo_reg_mut().appoint_reg(*self, Reg::X0);
@@ -90,25 +98,19 @@ impl<'a> Generate<'a> for ir::entities::Value {
                         vec![Inst::Li(ctx.allo_reg_mut().allo_reg_t(*self), i.value())]
                     }
                 } else { vec![] }
-            },
+            }, */
             Alloc(_) => vec![],
-            Load(l) => {
-                if !ctx.on_reg(*self) {
-                    let offset = *ctx.allo_stack().get(l.src()).unwrap();
-                    vec![
-                        // Inst::Com(format!("load by {:?}", ctx.value(*self).kind())),
-                        Inst::Lw(ctx.allo_reg_mut().allo_reg_t(*self), offset, Reg::Sp),
-                    ]
-                } else { vec![] }
-            },
+            Load(_) => vec![],
             Store(s) => {
                 let mut v = vec![];
                 if let Undef(_) = ctx.value(s.value()).kind() {
                     return v;
                 }
                 v.extend(s.value().generate(ctx));
+                let (reg, inst) = s.value().to_reg(ctx, None);
+                v.extend(inst);
                 let offset = *ctx.allo_stack().get(s.dest()).unwrap();
-                v.push(Inst::Sw(*ctx.allo_reg().get(s.value()).expect(&format!("{:#?}", ctx.value(s.value()))), offset, Reg::Sp));
+                v.push(Inst::Sw(reg, offset, Reg::Sp));
                 v
             },
             Undef(_) => vec![],
