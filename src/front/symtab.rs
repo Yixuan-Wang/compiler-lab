@@ -15,6 +15,14 @@ impl Symtab {
         }
     }
 
+    pub fn push_scope(&mut self) {
+        self.scope.push(HashMap::new());
+    }
+
+    pub fn pop_scope(&mut self) {
+        self.scope.pop();
+    }
+
     pub fn insert_val(&mut self, name: &str, value: ir::Value) {
         self.scope
             .last_mut()

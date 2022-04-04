@@ -14,11 +14,27 @@ pub trait Generate<'f> {
     fn generate(&self, ctx: &'f mut Context) -> Self::Val;
 }
 
+impl<'f> Generate<'f> for ast::Block {
+    type Val = ();
+    fn generate(&self, ctx: &'f mut Context) -> Self::Val {
+        for stmt in &self.0 {
+            stmt.generate(ctx);
+        }
+    }
+}
+
 impl<'f> Generate<'f> for ast::StmtKind {
     type Val = ();
     fn generate(&self, ctx: &'f mut Context) {
         use ast::StmtKind::*;
         match self {
+            Unit => {},
+            Exp(e) => { e.generate(ctx); },
+            Block(b) => {
+                ctx.table_mut().push_scope();
+                b.generate(ctx);
+                ctx.table_mut().pop_scope();
+            },
             Decl(v) => v.iter().for_each(|d| d.generate(ctx)),
             Assign(l, e) => {
                 let lval_handle = ctx.table().get_val(&l.0).expect(&format!(
@@ -31,17 +47,17 @@ impl<'f> Generate<'f> for ast::StmtKind {
                 let store = ctx.add_value(val!(store(exp_handle, lval_handle)), None);
                 ctx.insert_inst(store, ctx.curr());
             },
-            Return(r) => {
-                // let (curr, end) = (ctx.curr(), ctx.end());
-                let entry = ctx.entry();
-                // let ret_val = ctx.table.get_var("%ret");
-                let ret_val = r.generate(ctx);
-                // let store = ctx.add_value(val!(store(return_cnst, ret_val)), None);
-                // let jump = ctx.add_value(val!(jump(end)), None);
-                // ctx.insert_inst(store, curr);
-                // ctx.insert_inst(jump, curr);
-                let ret = ctx.add_value(val!(ret(Some(ret_val))), None);
-                ctx.insert_inst(ret, entry);
+            Return(option_r) => {
+                let ret = match option_r {
+                    Some(r) => {
+                        let ret_val = r.generate(ctx);
+                        ctx.add_value(val!(ret(Some(ret_val))), None)
+                    }
+                    None => {
+                        ctx.add_value(val!(ret(None)), None)
+                    }
+                };
+                ctx.insert_inst(ret, ctx.curr());
             }
         };
     }

@@ -19,11 +19,11 @@ pub enum ItemKind {
 pub struct Func {
     pub ident: String,
     pub output: Ty,
-    pub block: Vec<Stmt>,
+    pub block: Block,
 }
 
 impl Func {
-    pub fn new(ident: String, output: String, block: Vec<Stmt>) -> Func {
+    pub fn new(ident: String, output: String, block: Block) -> Func {
         Func {
             ident,
             output: Ty::new(&output),
@@ -77,9 +77,12 @@ impl DerefMut for Stmt {
 
 #[derive(Debug)]
 pub enum StmtKind {
+    Unit,
+    Exp(Exp),
+    Block(Block),
     Decl(Vec<Decl>),
     Assign(LVal, Exp),
-    Return(Exp),
+    Return(Option<Exp>),
 }
 
 // pub fn to_int_literal<'ip>(src: &'ip str, radix: u32, prefix_len: usize) -> i32 {
@@ -91,6 +94,9 @@ pub enum SymKind {
     Var,
     Const,
 }
+
+#[derive(Debug)]
+pub struct Block(pub Vec<Stmt>);
 
 #[derive(Debug)]
 pub struct Decl {

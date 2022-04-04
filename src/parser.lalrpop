@@ -30,20 +30,30 @@ Func: Func = {
     }
 }
 
-Block: Vec<Stmt> = "{" <Stmt*> "}";
+Block: Block = "{" <Stmt*> "}" => Block(<>);
 
 Stmt: Stmt = {
+    UnitStmt,
+    ExpStmt,
+    BlockStmt,
     DeclStmt,
     AssignStmt,
     ReturnStmt,
 }
+
+UnitStmt: Stmt = ";" => Stmt { kind: StmtKind::Unit };
+
+ExpStmt: Stmt = <Exp> ";" => Stmt { kind: StmtKind::Exp(<>) };
+
+BlockStmt: Stmt = <Block> => Stmt { kind: StmtKind::Block(<>) };
 
 DeclStmt: Stmt = Decl => Stmt { kind: StmtKind::Decl(<>) };
 
 AssignStmt: Stmt = <LVal> "=" <Exp> ";" => Stmt { kind: StmtKind::Assign(<>) };
 
 ReturnStmt: Stmt = {
-    "return" <r:Exp> ";" => Stmt { kind: StmtKind::Return(r) }
+    "return" <r:Exp> ";" => Stmt { kind: StmtKind::Return(Some(r)) },
+    "return" ";" => Stmt { kind: StmtKind::Return(None)},
 }
 
 Decl: Vec<Decl> = {

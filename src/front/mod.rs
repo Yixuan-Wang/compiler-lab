@@ -86,9 +86,7 @@ impl<'a> Declare<'a> for ast::Item {
                 // ctx.insert_block(cur);
                 // let jump_cur = ctx.add_value(val!(jump(cur)), None);
                 // ctx.insert_inst(jump_cur, ctx.entry());
-                for stmt in &func.block {
-                    stmt.generate(&mut ctx);
-                }
+                func.block.generate(&mut ctx);
             }
         };
     }
