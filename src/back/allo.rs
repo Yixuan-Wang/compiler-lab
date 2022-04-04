@@ -46,6 +46,13 @@ impl AlloReg {
         self.reg_allo.get(&val)
     }
 
+    pub fn get_or_appoint(&mut self, val: ir::Value) -> Reg {
+        match self.get(val) {
+            Some(reg) => *reg,
+            None => self.allo_reg_t(val),
+        }
+    }
+
     pub fn contains_key(&self, val: ir::Value) -> bool {
         self.reg_allo.contains_key(&val)
     }

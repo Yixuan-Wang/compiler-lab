@@ -46,8 +46,8 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 if !ctx.on_reg(*self) {
                     v.extend(bin.lhs().generate(ctx));
                     v.extend(bin.rhs().generate(ctx));
-                    let lreg = *ctx.allo_reg().get(bin.lhs()).unwrap();
-                    let rreg = *ctx.allo_reg().get(bin.rhs()).unwrap();
+                    let lreg = ctx.allo_reg_mut().get_or_appoint(bin.lhs());
+                    let rreg = ctx.allo_reg_mut().get_or_appoint(bin.rhs());
                     let dreg = ctx.allo_reg_mut().allo_reg_t(*self);
                     match bin.op() {
                         Eq => v.extend([
