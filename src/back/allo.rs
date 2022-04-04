@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use koopa::ir;
 
 use crate::util::autonum::Autocount;
@@ -7,6 +6,9 @@ use super::risc::RiscReg as Reg;
 
 pub struct AlloReg {
     reg_allo: HashMap<ir::Value, Reg>,
+
+    /// Stores owners of temp regs.
+    reg_owner: HashMap<Reg, ir::Value>,
     pub reg_t: Autocount,
 }
 
@@ -15,30 +17,28 @@ impl AlloReg {
         AlloReg {
             reg_t: Autocount::new(Some(7)),
             reg_allo: HashMap::new(),
+            reg_owner: HashMap::new(),
         }
     }
 
     /// 分配 t 寄存器，可能覆盖
     pub fn allo_reg_t(&mut self, val: ir::Value) -> Reg {
-        let reg = self.reg_allo.entry(val);
-        match reg {
-            Entry::Occupied(e) => *e.get(),
-            Entry::Vacant(e) => {
-                let r = Reg::T(match self.reg_t.next() {
-                    Ok(t) => t,
-                    Err(_) => {
-                        self.reg_t.reset();
-                        self.reg_t.next().unwrap()
-                    }
-                } as u8);
-                e.insert(r);
-                r
+        let reg = Reg::T(match self.reg_t.next() {
+            Ok(t) => t,
+            Err(_) => {
+                self.reg_t.reset();
+                self.reg_t.next().unwrap()
             }
-        }
+        } as u8);
+        self.appoint_reg(val, reg);
+        reg
     }
 
     pub fn appoint_reg(&mut self, val: ir::Value, reg: Reg) -> Reg {
         self.reg_allo.insert(val, reg);
+        if let Some(old) = self.reg_owner.insert(reg, val) {
+            self.reg_allo.remove(&old);
+        }
         reg
     }
 

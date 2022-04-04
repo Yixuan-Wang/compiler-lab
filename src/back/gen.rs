@@ -26,6 +26,9 @@ impl<'a> Generate<'a> for ir::entities::Value {
                             vec![Inst::Li(Reg::A(0), i.value())]
                         }
                         Binary(_) | Load(_) => {
+                            if !ctx.on_reg(ret) {
+                                ret.generate(ctx);
+                            };
                             let retreg = *ctx.allo_reg().get(ret).unwrap();
                             vec![Inst::Mv(Reg::A(0), retreg)]
                         }
