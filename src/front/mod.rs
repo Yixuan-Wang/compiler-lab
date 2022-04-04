@@ -12,9 +12,11 @@ lalrpop_mod! {
 use std::{result, ops::{Deref, DerefMut}, io, error::Error};
 use koopa::{ir::{Program, builder_traits::*}, back::KoopaGenerator};
 
-use self::symtab::Symtab;
-use self::context::{Context};
+use crate::WrapProgram;
+
+use self::context::Context;
 use self::gen::Generate;
+use self::symtab::Symtab;
 
 pub fn into_ast(source: String) -> Vec<ast::Item> {
     let parser = parser::CompUnitParser::new();
@@ -78,6 +80,7 @@ trait Declare<'a> {
 impl<'a> Declare<'a> for ast::Item {
     fn declare(&self, program: &'a mut Program, globals: &'a mut Symtab) {
         use ast::ItemKind::*;
+        use koopa::ir::ValueKind;
         match self.kind {
             Global() => unimplemented!(),
             Func(ref func) => {
@@ -87,6 +90,22 @@ impl<'a> Declare<'a> for ast::Item {
                 // let jump_cur = ctx.add_value(val!(jump(cur)), None);
                 // ctx.insert_inst(jump_cur, ctx.entry());
                 func.block.generate(&mut ctx);
+                let insts = ctx.bb(ctx.curr()).insts();
+                if (insts.back_key().is_some()
+                    && !matches!(
+                        ctx.value(*insts.back_key().unwrap()).kind(),
+                        ValueKind::Return(_)
+                    ))
+                    || insts.back_key().is_none()
+                {
+                    drop(insts);
+                    let zero = ctx.add_value(val!(integer(0)), None);
+                    let implicit_ret = ctx.add_value(val!(ret(Some(zero))), None);
+                    ctx.bb_mut(ctx.curr())
+                        .insts_mut()
+                        .push_key_back(implicit_ret)
+                        .unwrap();
+                }
             }
         };
     }

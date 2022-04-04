@@ -35,6 +35,14 @@ trait WrapProgram {
         self.func().layout()
     }
 
+    fn bb(&self, bb: ir::BasicBlock) -> &ir::layout::BasicBlockNode {
+        self.layout().bbs().node(&bb).expect("`bb` does not exist")
+    }
+
+    fn bb_mut(&mut self, bb: ir::BasicBlock) -> &mut ir::layout::BasicBlockNode {
+        self.layout_mut().bb_mut(bb)
+    }
+
     fn value(&self, value: ir::Value) -> &ir::entities::ValueData {
         self.dfg().value(value)
     }
