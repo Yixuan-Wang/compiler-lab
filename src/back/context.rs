@@ -69,8 +69,11 @@ impl<'a> Context<'a> {
 
     pub fn prologue(&self) -> Vec<RiscInst> {
         use RiscInst::*;
-        let insts = self.func().layout().bbs().nodes().flat_map(|node| node.insts());
-        insts.for_each(|(h, _)| {
+        let mut insts: Vec<ir::Value> = vec![];
+        for (_bb, node) in self.func().layout().bbs() {
+            insts.extend(node.insts().keys())
+        }
+        insts.iter().for_each(|h| {
             let d = self.value(*h);
             self.allo_stack_mut().insert(*h, d);
         });

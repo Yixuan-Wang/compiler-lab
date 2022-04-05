@@ -111,7 +111,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 v.extend(s.value().generate(ctx));
                 let (reg, inst) = s.value().to_reg(ctx, None);
                 v.extend(inst);
-                let offset = *ctx.allo_stack().get(s.dest()).unwrap();
+                let offset = *ctx.allo_stack().get(s.dest()).expect(&format!("BackendError: {} not found", ctx.value(s.dest()).name().clone().unwrap()));
                 v.push(Inst::Sw(reg, offset, Reg::Sp));
                 v
             },
