@@ -86,6 +86,40 @@ impl<'f> Generate<'f> for ast::StmtKind {
 
                 ctx.insert_block(block_endif);
                 ctx.set_curr(block_endif);
+            },
+            While(exp, body) => {
+                let block_name_while = ctx.inst_namer.gen(Some("while".to_string()));
+                let block_name_loop = ctx.inst_namer.gen(Some("loop".to_string()));
+                let block_name_endwhile = ctx.inst_namer.gen(Some("endwhile".to_string()));
+
+                let block_while = ctx.add_block(&block_name_while);
+                let block_loop = ctx.add_block(&block_name_loop);
+                let block_endwhile = ctx.add_block(&block_name_endwhile);
+
+                let jump_in = ctx.add_value(val!(jump(block_while)), None);
+                ctx.insert_inst(jump_in, ctx.curr());
+                ctx.seal_block(ctx.curr());
+
+                {
+                    ctx.insert_block(block_while);
+                    ctx.set_curr(block_while);
+                    let gate = exp.generate(ctx);
+                    let branch = ctx.add_value(val!(branch(gate, block_loop, block_endwhile)), None);
+                    ctx.insert_inst(branch, ctx.curr());
+                    ctx.seal_block(ctx.curr());
+                }
+
+                {
+                    ctx.insert_block(block_loop);
+                    ctx.set_curr(block_loop);
+                    body.generate(ctx);
+                    let jump_back = ctx.add_value(val!(jump(block_while)), None);
+                    ctx.insert_inst(jump_back, ctx.curr());
+                    ctx.seal_block(ctx.curr());
+                }
+
+                ctx.insert_block(block_endwhile);
+                ctx.set_curr(block_endwhile);
             }
             Return(option_r) => {
                 let ret = match option_r {
