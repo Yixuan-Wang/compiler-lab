@@ -83,6 +83,9 @@ pub enum StmtKind {
     Decl(Vec<Decl>),
     Assign(LVal, Exp),
     If(Exp, Box<Stmt>, Option<Box<Stmt>>),
+    While(Exp, Box<Stmt>),
+    Break,
+    Continue,
     Return(Option<Exp>),
 }
 

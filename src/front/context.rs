@@ -16,6 +16,7 @@ pub struct Context<'a> {
     pub globals: &'a mut Symtab,
     pub func: ir::Function,
     table: Symtab,
+    loop_stack: Vec<(ir::BasicBlock, ir::BasicBlock)>,
     pub variable_namer: Autonum,
     pub inst_namer: Autonum,
     sealed: HashSet<ir::BasicBlock>,
@@ -82,6 +83,7 @@ impl<'a: 'f, 'f> Context<'a> {
             one,
             sealed: HashSet::new(),
             table: Symtab::new(),
+            loop_stack: Vec::new(),
             variable_namer: Autonum::new(),
             inst_namer: Autonum::new()
         })
@@ -244,5 +246,17 @@ impl<'a: 'f, 'f> Context<'a> {
     /// Return the mutable variant of current symbol table
     pub fn table_mut(&mut self) -> &mut Symtab {
         &mut self.table
+    }
+
+    pub fn enter_loop(&mut self, loop_blocks: (ir::BasicBlock, ir::BasicBlock)) {
+        self.loop_stack.push(loop_blocks)
+    }
+
+    pub fn exit_loop(&mut self) {
+        self.loop_stack.pop();
+    }
+
+    pub fn curr_loop(&mut self) -> (ir::BasicBlock, ir::BasicBlock) {
+        self.loop_stack.last().unwrap().clone()
     }
 }
