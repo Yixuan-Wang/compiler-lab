@@ -190,6 +190,12 @@ impl<'a: 'f, 'f> Context<'a> {
                 .insts_mut()
                 .push_key_back(val)
                 .unwrap();
+        } else {
+            let ghost_block_name = self.inst_namer.gen(Some("ghost".to_string()));
+            let ghost_block = self.add_block(&ghost_block_name);
+            self.insert_block(ghost_block);
+            self.set_curr(ghost_block);
+            self.insert_inst(val, self.curr());
         }
     }
 

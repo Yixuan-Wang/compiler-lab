@@ -94,7 +94,7 @@ impl<'a> Declare<'a> for ast::Item {
                 if (insts.back_key().is_some()
                     && !matches!(
                         ctx.value(*insts.back_key().unwrap()).kind(),
-                        ValueKind::Return(_)
+                        ValueKind::Return(_) | ValueKind::Jump(_) | ValueKind::Branch(..)
                     ))
                     || insts.back_key().is_none()
                 {
