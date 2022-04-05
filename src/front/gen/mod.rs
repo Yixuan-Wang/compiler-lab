@@ -47,6 +47,43 @@ impl<'f> Generate<'f> for ast::StmtKind {
                 let store = ctx.add_value(val!(store(exp_handle, lval_handle)), None);
                 ctx.insert_inst(store, ctx.curr());
             },
+            If(exp, then, alt) => {
+                let block_name_then = ctx.inst_namer.gen(Some("then".to_string()));
+                let block_name_else = ctx.inst_namer.gen(Some("else".to_string()));
+                let block_name_endif = ctx.inst_namer.gen(Some("endif".to_string()));
+
+                let block_then = ctx.add_block(&block_name_then);
+                let block_endif = ctx.add_block(&block_name_endif);
+                let block_else = if alt.is_none() { block_endif } else { ctx.add_block(&block_name_else) };
+
+                {
+                    let gate = exp.generate(ctx);               
+                    let branch = ctx.add_value(val!(branch(gate, block_then, block_else)), None);
+                    ctx.insert_inst(branch, ctx.curr());
+                    ctx.seal_block(ctx.curr());
+                }
+
+                {
+                    ctx.insert_block(block_then);
+                    ctx.set_curr(block_then);
+                    then.generate(ctx);
+                    let jump = ctx.add_value(val!(jump(block_endif)), None);
+                    ctx.insert_inst(jump, ctx.curr());
+                    ctx.seal_block(ctx.curr());
+                }
+
+                if let Some(alt) = alt {
+                    ctx.insert_block(block_else);
+                    ctx.set_curr(block_else);
+                    alt.generate(ctx);
+                    let jump = ctx.add_value(val!(jump(block_endif)), None);
+                    ctx.insert_inst(jump, ctx.curr());
+                    ctx.seal_block(ctx.curr());
+                }
+
+                ctx.insert_block(block_endif);
+                ctx.set_curr(block_endif);
+            }
             Return(option_r) => {
                 let ret = match option_r {
                     Some(r) => {
@@ -58,6 +95,7 @@ impl<'f> Generate<'f> for ast::StmtKind {
                     }
                 };
                 ctx.insert_inst(ret, ctx.curr());
+                ctx.seal_block(ctx.curr());
             }
         };
     }
