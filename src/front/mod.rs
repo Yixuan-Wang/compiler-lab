@@ -90,7 +90,7 @@ impl<'a> Declare<'a> for ast::Item {
                 // let jump_cur = ctx.add_value(val!(jump(cur)), None);
                 // ctx.insert_inst(jump_cur, ctx.entry());
                 func.block.generate(&mut ctx);
-                let insts = ctx.bb(ctx.curr()).insts();
+                let insts = ctx.bb_node(ctx.curr()).insts();
                 if (insts.back_key().is_some()
                     && !matches!(
                         ctx.value(*insts.back_key().unwrap()).kind(),
@@ -101,7 +101,7 @@ impl<'a> Declare<'a> for ast::Item {
                     drop(insts);
                     let zero = ctx.add_value(val!(integer(0)), None);
                     let implicit_ret = ctx.add_value(val!(ret(Some(zero))), None);
-                    ctx.bb_mut(ctx.curr())
+                    ctx.bb_node_mut(ctx.curr())
                         .insts_mut()
                         .push_key_back(implicit_ret)
                         .unwrap();

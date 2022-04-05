@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use super::reg::RiscReg as Reg;
 
+#[allow(dead_code)]
 /// RISC-V 指令
 /// 
 /// https://pku-minic.github.io/online-doc/#/misc-app-ref/riscv-insts
@@ -38,6 +39,12 @@ pub enum RiscInst {
     Seqz(Reg, Reg),
     /// 非零 `snez rd, rs`
     Snez(Reg, Reg),
+    /// 判零转移 `beqz rs, label`
+    Beqz(Reg, String),
+    /// 非零转移 `bnez rs, label`
+    Bnez(Reg, String),
+    /// 无条件转移 `j label`
+    J(String),
     /// 返回 `ret`
     Ret,
     /// 加载立即数 `li rd, imm`
@@ -73,7 +80,10 @@ impl Display for RiscInst {
             Rem(rd, rs1, rs2) => write!(f, "rem {rd}, {rs1}, {rs2}"),
             Seqz(rd, rs) => write!(f, "seqz {rd}, {rs}"),
             Snez(rd, rs) => write!(f, "snez {rd}, {rs}"),
+            Beqz(rs, label) => write!(f, "beqz {rs}, {label}"),
+            Bnez(rs, label) => write!(f, "bnez {rs}, {label}"),
             Ret => write!(f, "ret"),
+            J(label) => write!(f, "j {label}"),
             Li(r, i) => write!(f, "li {r}, {i}"),
             Mv(rd, rs) => write!(f, "mv {rd}, {rs}"),
             Lw(rs, of, rd) => write!(f, "lw {rs}, {of}({rd})"),
