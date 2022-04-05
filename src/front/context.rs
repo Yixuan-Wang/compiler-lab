@@ -22,6 +22,8 @@ pub struct Context<'a> {
     entry: Option<ir::BasicBlock>,
     end: Option<ir::BasicBlock>,
     curr: Option<ir::BasicBlock>,
+    pub zero: ir::Value,
+    pub one: ir::Value,
 }
 
 #[macro_export]
@@ -64,6 +66,11 @@ impl<'a: 'f, 'f> Context<'a> {
         );
         let func = program.new_func(func_data);
 
+        let dfg_handle = program.func_mut(func).dfg_mut();
+        let zero = dfg_handle.new_value().integer(0);
+        let one = dfg_handle.new_value().integer(1);
+        drop(dfg_handle);
+
         Ok(Context {
             program,
             globals,
@@ -71,6 +78,8 @@ impl<'a: 'f, 'f> Context<'a> {
             entry: None,
             end: None,
             curr: None,
+            zero,
+            one,
             sealed: HashSet::new(),
             table: Symtab::new(),
             variable_namer: Autonum::new(),
