@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, collections::HashSet};
 
 use koopa::ir::{
     self,
@@ -16,9 +16,12 @@ pub struct Context<'a> {
     pub globals: &'a mut Symtab,
     pub func: ir::Function,
     table: Symtab,
-    pub auton: Autonum,
+    pub variable_namer: Autonum,
+    pub inst_namer: Autonum,
+    sealed: HashSet<ir::BasicBlock>,
     entry: Option<ir::BasicBlock>,
     end: Option<ir::BasicBlock>,
+    curr: Option<ir::BasicBlock>,
 }
 
 #[macro_export]
@@ -67,8 +70,11 @@ impl<'a: 'f, 'f> Context<'a> {
             func,
             entry: None,
             end: None,
+            curr: None,
+            sealed: HashSet::new(),
             table: Symtab::new(),
-            auton: Autonum::new(),
+            variable_namer: Autonum::new(),
+            inst_namer: Autonum::new()
         })
     }
 
@@ -103,6 +109,7 @@ impl<'a: 'f, 'f> Context<'a> {
         } */
 
         self.entry = Some(entry);
+        self.curr = Some(entry);
         // self.end = Some(end);
     }
 
@@ -152,8 +159,8 @@ impl<'a: 'f, 'f> Context<'a> {
     where
         F: FnOnce(ir::builder::LocalBuilder) -> ir::Value
     {
-        let name = self.auton.gen(None);
-        self.add_value(builder_fn, Some(name))
+        let name = self.variable_namer.gen(None);
+        self.add_value(builder_fn, Some(format!("%{}", name)))
     }
 
     pub fn insert_block(&mut self, block: ir::BasicBlock) {
@@ -163,12 +170,18 @@ impl<'a: 'f, 'f> Context<'a> {
             .unwrap();
     }
 
+    pub fn seal_block(&mut self, block: ir::BasicBlock) {
+        self.sealed.insert(block);
+    }
+
     pub fn insert_inst(&mut self, val: ir::Value, block: ir::BasicBlock) {
-        self.layout_mut()
-            .bb_mut(block)
-            .insts_mut()
-            .push_key_back(val)
-            .unwrap();
+        if !self.sealed.contains(&block) {
+            self.layout_mut()
+                .bb_mut(block)
+                .insts_mut()
+                .push_key_back(val)
+                .unwrap();
+        }
     }
 
     pub fn kind(&self) -> &ir::TypeKind {
@@ -189,12 +202,23 @@ impl<'a: 'f, 'f> Context<'a> {
         unimplemented!()
     }
 
-    /// Return the current block
-    pub fn curr(&self) -> ir::BasicBlock {
+    /// Return the latest block
+    pub fn latest_block(&self) -> ir::BasicBlock {
         *self.layout()
              .bbs()
              .back_key()
              .unwrap()
+    }
+
+    /// Return the current block
+    pub fn curr(&self) -> ir::BasicBlock {
+        self.curr
+            .unwrap()
+    }
+
+    /// Set current block
+    pub fn set_curr(&mut self, bb: ir::BasicBlock) {
+        self.curr = Some(bb);
     }
 
     /// Return the current symbol table

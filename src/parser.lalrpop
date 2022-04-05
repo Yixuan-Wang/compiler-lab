@@ -33,6 +33,21 @@ Func: Func = {
 Block: Block = "{" <Stmt*> "}" => Block(<>);
 
 Stmt: Stmt = {
+    OpenStmt,
+    ClosedStmt,
+}
+
+OpenStmt: Stmt = {
+    IfStmt,
+    OpenIfElseStmt,
+}
+
+ClosedStmt: Stmt = {
+    NonIfStmt,
+    ClosedIfElseStmt,
+}
+
+NonIfStmt: Stmt = {
     UnitStmt,
     ExpStmt,
     BlockStmt,
@@ -50,6 +65,12 @@ BlockStmt: Stmt = <Block> => Stmt { kind: StmtKind::Block(<>) };
 DeclStmt: Stmt = Decl => Stmt { kind: StmtKind::Decl(<>) };
 
 AssignStmt: Stmt = <LVal> "=" <Exp> ";" => Stmt { kind: StmtKind::Assign(<>) };
+
+IfStmt: Stmt = "if" "(" <e: Exp> ")" <t: Stmt> => Stmt { kind: StmtKind::If(e, Box::new(t), None) };
+
+OpenIfElseStmt: Stmt = "if" "(" <e: Exp> ")" <t: ClosedStmt> "else" <a: OpenStmt> => Stmt { kind: StmtKind::If(e, Box::new(t), Some(Box::new(a))) };
+
+ClosedIfElseStmt: Stmt = "if" "(" <e: Exp> ")" <t: ClosedStmt> "else" <a: ClosedStmt> => Stmt { kind: StmtKind::If(e, Box::new(t), Some(Box::new(a))) };
 
 ReturnStmt: Stmt = {
     "return" <r:Exp> ";" => Stmt { kind: StmtKind::Return(Some(r)) },

@@ -1,9 +1,9 @@
-use std::cell::{RefCell, Ref, RefMut};
+use std::{cell::{RefCell, Ref, RefMut}, fmt::Display};
 
 use koopa::ir;
-use crate::{WrapProgram, back::risc::{MAX_IMM, RiscInst, RiscReg}};
+use crate::WrapProgram;
 
-use super::{allo::{AlloReg, AlloStack}, risc::RiscItem};
+use super::{allo::{AlloReg, AlloStack}, risc::{MAX_IMM, RiscInst, RiscReg}};
 
 pub struct Context<'a> {
     pub program: &'a mut ir::Program,
@@ -58,6 +58,14 @@ impl<'a> Context<'a> {
     // pub fn on_stack(&self, val: ir::Value) -> bool {
     //     self.allo_stack().contains_key(val)
     // }
+
+    pub fn name(&self) -> &str {
+        unsafe { self.func().name().get_unchecked(1..) }
+    }
+
+    pub fn prefix_with_name(&self, string: &str) -> String {
+        format!("{}_{}", unsafe { self.func().name().get_unchecked(1..) }, unsafe { string.get_unchecked(1..) })
+    } 
 
     pub fn prologue(&self) -> Vec<RiscInst> {
         use RiscInst::*;

@@ -32,15 +32,15 @@ impl Autonum {
         match self.h.get_mut(&name) {
             Some(c) => {
                 let s = match &name {
-                    Some(n) => format!("%{n}_{}", c.next().unwrap()),
-                    None => format!("%{}", c.next().unwrap()),
+                    Some(n) => format!("{n}_{}", c.next().unwrap()),
+                    None => format!("{}", c.next().unwrap()),
                 };
                 s
             },
             None => {
                 let s = match &name {
-                    Some(n) => format!("%{n}_0"),
-                    None => format!("%0"),
+                    Some(n) => format!("{n}_0"),
+                    None => format!("0"),
                 };
                 let mut c = Autocount::new(None);
                 c.next().unwrap();

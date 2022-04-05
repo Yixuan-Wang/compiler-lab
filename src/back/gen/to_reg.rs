@@ -3,7 +3,11 @@ use koopa::ir::Value;
 use crate::back::{Context, risc::{RiscInst::{self as Inst, *}, RiscReg as Reg}};
 use crate::WrapProgram;
 
+/// 将一个值存入寄存器，并生成所需的 RISC-V 指令
 pub trait ToReg<'a> {
+    /// 将值尽可能存入 `ideal` 寄存器或随机分配临时寄存器，返回所在寄存器及所需的 RISC-V 指令。
+    /// 
+    /// 具有某种原子性，在调用期间不能有其他寄存器操作。
     fn to_reg(&self, ctx: &'a Context, ideal: Option<Reg>) -> (Reg, Vec<Inst>);
 }
 

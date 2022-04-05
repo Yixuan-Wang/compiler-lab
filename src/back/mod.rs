@@ -29,12 +29,15 @@ impl TryFrom<Ir> for Target {
 
         text.extend(funcs.into_iter().flat_map(|func| {
             let ctx = Context::new(&mut program, func);
-            let name = unsafe { ctx.func().name().get_unchecked(1..) };
             let mut insts = vec![
-                Item::Label(name.to_string()),
+                Item::Label(ctx.name().to_string()),
             ];
             insts.extend(ctx.prologue().into_iter().map(Item::Inst));
-            for (_bb, node) in ctx.func().layout().bbs() {
+            for (bb, node) in ctx.func().layout().bbs() {
+                let name = ctx.bb(*bb).name().clone().unwrap();
+                if name != "%entry" {
+                    insts.push(Item::Label(ctx.prefix_with_name(&name)));
+                }
                 insts.extend(
                     node.insts()
                         .keys()

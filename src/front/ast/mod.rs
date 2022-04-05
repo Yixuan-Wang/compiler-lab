@@ -82,6 +82,7 @@ pub enum StmtKind {
     Block(Block),
     Decl(Vec<Decl>),
     Assign(LVal, Exp),
+    If(Exp, Box<Stmt>, Option<Box<Stmt>>),
     Return(Option<Exp>),
 }
 

@@ -1,7 +1,3 @@
-use std::borrow::{BorrowMut, Borrow};
-use std::panic;
-
-use super::allo::AlloReg;
 use super::context::Context;
 use super::risc;
 use koopa::ir;
@@ -11,6 +7,12 @@ use crate::WrapProgram;
 mod to_reg;
 use to_reg::ToReg;
 
+// macro_rules! wrap_inst {
+//     ($i: ident) => {
+//         $i.into_iter().map(Item::Inst)
+//     };
+// }
+
 /// [`Generate`] 处理 [`ir::entities::ValueData`]，将每一条语句从 Koopa 内存形式转化为 RISC-V 指令
 pub trait Generate<'a> {
     fn generate(&self, ctx: &'a Context) -> Vec<risc::RiscInst>;
@@ -19,13 +21,13 @@ pub trait Generate<'a> {
 impl<'a> Generate<'a> for ir::entities::Value {
     fn generate(&self, ctx: &'a Context) -> Vec<risc::RiscInst> {
         use ir::entities::ValueKind::*;
-        use risc::{RiscInst as Inst, RiscReg as Reg};
+        use risc::{RiscItem as Item, RiscInst as Inst, RiscReg as Reg};
         let value_data = ctx.value(*self);
         match value_data.kind() {
             Return(r) => {
                 let mut v = vec![];
                 if let Some(val) = r.value() {
-                    let (reg, inst) = val.to_reg(ctx, Some(Reg::A(0)));
+                    let (_, inst) = val.to_reg(ctx, Some(Reg::A(0)));
                     v.extend(inst);
                 }
                 v.extend(ctx.epilogue());
@@ -34,7 +36,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
             }
             Binary(bin) => {
                 use ir::BinaryOp::*;
-                let mut v = vec![];
+                let mut v: Vec<Inst> = vec![];
                 if !ctx.on_reg(*self) {
                     let (l, r) = (bin.lhs(), bin.rhs());
                     v.extend(l.generate(ctx));
@@ -114,6 +116,26 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 v
             },
             Undef(_) => vec![],
+            Branch(b) => {
+                let mut v = vec![];
+                let cond = b.cond();
+                let (gate, gate_inst) = cond.to_reg(ctx, None);
+                v.extend(gate_inst);
+                let (true_block_name, false_block_name) = (
+                    ctx.bb(b.true_bb()).name().clone().unwrap(),
+                    ctx.bb(b.false_bb()).name().clone().unwrap(),
+                );
+                v.extend([
+                    Inst::Bnez(gate, ctx.prefix_with_name(&true_block_name)),
+                    Inst::J(ctx.prefix_with_name(&false_block_name)),
+                ]);
+                v
+            },
+            Jump(j) => {
+                let target = j.target();
+                let target_block_name = ctx.bb(target).name().clone().unwrap();
+                vec![Inst::J(ctx.prefix_with_name(&target_block_name))]
+            }
             _ => todo!("{:#?}", value_data.kind()),
         }
     }
