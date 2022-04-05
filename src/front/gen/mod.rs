@@ -112,15 +112,29 @@ impl<'f> Generate<'f> for ast::StmtKind {
                 {
                     ctx.insert_block(block_loop);
                     ctx.set_curr(block_loop);
+                    ctx.enter_loop((block_while, block_endwhile));
                     body.generate(ctx);
                     let jump_back = ctx.add_value(val!(jump(block_while)), None);
                     ctx.insert_inst(jump_back, ctx.curr());
                     ctx.seal_block(ctx.curr());
+                    ctx.exit_loop();
                 }
 
                 ctx.insert_block(block_endwhile);
                 ctx.set_curr(block_endwhile);
-            }
+            },
+            Break => {
+                let (_, block_dest) = ctx.curr_loop();
+                let jump = ctx.add_value(val!(jump(block_dest)), None);
+                ctx.insert_inst(jump, ctx.curr());
+                ctx.seal_block(ctx.curr());
+            },
+            Continue => {
+                let (block_dest, _) = ctx.curr_loop();
+                let jump = ctx.add_value(val!(jump(block_dest)), None);
+                ctx.insert_inst(jump, ctx.curr());
+                ctx.seal_block(ctx.curr());
+            },
             Return(option_r) => {
                 let ret = match option_r {
                     Some(r) => {

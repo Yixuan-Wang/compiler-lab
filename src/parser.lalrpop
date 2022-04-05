@@ -55,6 +55,8 @@ NonIfStmt: Stmt = {
     BlockStmt,
     DeclStmt,
     AssignStmt,
+    BreakStmt,
+    ContinueStmt,
     ReturnStmt,
 }
 
@@ -77,6 +79,10 @@ ClosedIfElseStmt: Stmt = "if" "(" <e: Exp> ")" <t: ClosedStmt> "else" <a: Closed
 OpenWhileStmt: Stmt = "while" "(" <e: Exp> ")" <t: OpenStmt> => Stmt { kind: StmtKind::While(e, Box::new(t)) };
 
 ClosedWhileStmt: Stmt = "while" "(" <e: Exp> ")" <t: ClosedStmt> => Stmt { kind: StmtKind::While(e, Box::new(t)) };
+
+BreakStmt: Stmt = "break" ";" => Stmt { kind: StmtKind::Break };
+
+ContinueStmt: Stmt = "continue" ";" => Stmt { kind: StmtKind::Continue };
 
 ReturnStmt: Stmt = {
     "return" <r:Exp> ";" => Stmt { kind: StmtKind::Return(Some(r)) },
