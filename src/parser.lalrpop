@@ -18,6 +18,15 @@ Comma<T>: Vec<T> = {
     }
 };
 
+CommaOrEmpty<T>: Vec<T> = {
+    <mut v:(<T> ",")*> <e:T?> => {
+        if let Some(t) = e {
+            v.push(t);
+        }
+        v
+    }
+};
+
 pub CompUnit: Vec<Item> = <Item*>;
 
 Item: Item = {
@@ -25,10 +34,12 @@ Item: Item = {
 }
 
 Func: Func = {
-    <t:FUNC_TYPE> <i:IDENT> "(" ")" <b:Block> => {
-        Func::new(i, t, b)
+    <t:FUNC_TYPE> <i:IDENT> "(" <p: CommaOrEmpty<Param>> ")" <b:Block> => {
+        Func::new(i, t.to_string(), p, b)
     }
 }
+
+Param: Param = <ty:VAL_TYPE> <ident:IDENT> => Param { ty: Ty::new(&ty), ident };
 
 Block: Block = "{" <Stmt*> "}" => Block(<>);
 
@@ -140,6 +151,7 @@ UnaryExp: UnaryExp = {
     PrimaryExp => UnaryExp::Primary(<>),
     <o:UnaryOp> <e:UnaryExp> => UnaryExp::Unary(o, Box::new(e)),
     "+" <UnaryExp>,
+    <i:IDENT> "(" <p:CommaOrEmpty<Exp>> ")" => UnaryExp::Call(i, p.into_iter().map(Box::new).collect()),
 }
 
 UnaryOp: UnaryOp = {
@@ -202,6 +214,9 @@ LOrExp: LOrExp = {
 
 IDENT: String = r"[A-Za-z_][A-Za-z0-9_]*" => <>.to_string();
 
-FUNC_TYPE: String = "int" => <>.to_string();
+FUNC_TYPE: &'input str = {
+    "int",
+    "void",
+}
 
 VAL_TYPE: String = "int" => <>.to_string();

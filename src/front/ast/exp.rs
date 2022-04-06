@@ -22,6 +22,7 @@ impl PrimaryExp {
 pub enum UnaryExp {
     Primary(PrimaryExp),
     Unary(UnaryOp, Box<UnaryExp>),
+    Call(String, Vec<Box<Exp>>),
 }
 
 #[derive(Debug, PartialEq, Eq)]

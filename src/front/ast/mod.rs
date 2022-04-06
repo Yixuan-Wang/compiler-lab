@@ -19,14 +19,16 @@ pub enum ItemKind {
 pub struct Func {
     pub ident: String,
     pub output: Ty,
+    pub params: Vec<Param>,
     pub block: Block,
 }
 
 impl Func {
-    pub fn new(ident: String, output: String, block: Block) -> Func {
+    pub fn new(ident: String, output: String, params: Vec<Param>, block: Block) -> Func {
         Func {
             ident,
             output: Ty::new(&output),
+            params,
             block,
         }
     }
@@ -112,6 +114,12 @@ pub struct Decl {
 
 #[derive(Debug)]
 pub struct LVal(pub String);
+
+#[derive(Debug)]
+pub struct Param {
+    pub ident: String,
+    pub ty: Ty,
+}
 
 pub use exp::*;
 mod exp;

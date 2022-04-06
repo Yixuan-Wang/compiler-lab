@@ -26,8 +26,8 @@ impl<'f> Generate<'f> for ast::LAndExp {
                 let init_res = ctx.add_value(val!(store(zero, res)), None);
                 ctx.insert_inst(init_res, ctx.curr());
 
-                let block_right_name = ctx.inst_namer.gen("lazy_land_right");
-                let block_skip_name = ctx.inst_namer.gen("lazy_land_skip");
+                let block_right_name = ctx.block_namer.gen("lazy_land_right");
+                let block_skip_name = ctx.block_namer.gen("lazy_land_skip");
 
                 let block_right = ctx.add_block(&block_right_name);
                 let block_skip = ctx.add_block(&block_skip_name);
@@ -81,8 +81,8 @@ impl<'f> Generate<'f> for ast::LOrExp {
                 let init_res = ctx.add_value(val!(store(one, res)), None);
                 ctx.insert_inst(init_res, ctx.curr());
 
-                let block_right_name = ctx.inst_namer.gen("lazy_lor_right");
-                let block_skip_name = ctx.inst_namer.gen("lazy_lor_skip");
+                let block_right_name = ctx.block_namer.gen("lazy_lor_right");
+                let block_skip_name = ctx.block_namer.gen("lazy_lor_skip");
 
                 let block_right = ctx.add_block(&block_right_name);
                 let block_skip = ctx.add_block(&block_skip_name);

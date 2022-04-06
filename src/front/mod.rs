@@ -1,6 +1,7 @@
 pub mod ast;
 #[macro_use]
 mod context;
+mod declare;
 mod gen;
 mod symtab;
 
@@ -12,7 +13,7 @@ lalrpop_mod! {
 
 use koopa::{
     back::KoopaGenerator,
-    ir::{builder_traits::*, Program},
+    ir::Program,
 };
 use std::{
     error::Error,
@@ -21,11 +22,9 @@ use std::{
     result,
 };
 
-use crate::WrapProgram;
+use self::symtab::{FuncTab, ValTab};
+use self::declare::Declare;
 
-use self::context::Context;
-use self::gen::Generate;
-use self::symtab::Symtab;
 
 pub fn into_ast(source: String) -> Vec<ast::Item> {
     let parser = parser::CompUnitParser::new();
@@ -64,9 +63,10 @@ impl TryFrom<Vec<ast::Item>> for Ir {
 
     fn try_from(value: Vec<ast::Item>) -> result::Result<Self, Self::Error> {
         let mut program = Program::new();
-        let mut globals = Symtab::new();
+        let mut func_tab = FuncTab::new();
+        let mut global_val_tab = ValTab::new();
         for item in value {
-            item.declare(&mut program, &mut globals)
+            item.declare(&mut program, &mut func_tab, &mut global_val_tab);
         }
         Ok(Ir(program))
     }
@@ -78,43 +78,5 @@ impl TryFrom<Ir> for String {
         let mut gen = KoopaGenerator::new(Vec::new());
         gen.generate_on(&value.0)?;
         Ok(std::str::from_utf8(&gen.writer()).unwrap().to_string())
-    }
-}
-
-/// [`Declare`] 处理 AST 中的条目（[`ast::Item`]）：全局常量、变量声明和函数，并为每一个函数生成上下文（[`Context`]）
-trait Declare<'a> {
-    fn declare(&self, program: &'a mut Program, globals: &'a mut Symtab);
-}
-
-impl<'a> Declare<'a> for ast::Item {
-    fn declare(&self, program: &'a mut Program, globals: &'a mut Symtab) {
-        use ast::ItemKind::*;
-        use koopa::ir::ValueKind;
-        match self.kind {
-            Global() => unimplemented!(),
-            Func(ref func) => {
-                let mut ctx = Context::new(program, globals, func);
-                // let cur = ctx.add_block("temp");
-                // ctx.insert_block(cur);
-                // let jump_cur = ctx.add_value(val!(jump(cur)), None);
-                // ctx.insert_inst(jump_cur, ctx.entry());
-                func.block.generate(&mut ctx);
-                let insts = ctx.bb_node(ctx.curr()).insts();
-                if (insts.back_key().is_some()
-                    && !matches!(
-                        ctx.value(*insts.back_key().unwrap()).kind(),
-                        ValueKind::Return(_) | ValueKind::Jump(_) | ValueKind::Branch(..)
-                    ))
-                    || insts.back_key().is_none()
-                {
-                    let zero = ctx.add_value(val!(integer(0)), None);
-                    let implicit_ret = ctx.add_value(val!(ret(Some(zero))), None);
-                    ctx.bb_node_mut(ctx.curr())
-                        .insts_mut()
-                        .push_key_back(implicit_ret)
-                        .unwrap();
-                }
-            }
-        };
     }
 }

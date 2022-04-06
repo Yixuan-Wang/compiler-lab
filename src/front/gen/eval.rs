@@ -102,6 +102,7 @@ impl<'f> Eval<'f, i32> for UnaryExp {
                 UnaryOp::Minus => v.eval(ctx).map(|x: i32| -x),
                 UnaryOp::LNot => v.eval(ctx).map(|x| if x != 0 { 1 } else { 0 }),
             },
+            Self::Call(..) => None,
         }
     }
 }
