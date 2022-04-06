@@ -30,7 +30,7 @@ impl TryFrom<Ir> for Target {
             let ctx = Context::new(&mut program, func);
             let mut insts = vec![Item::Label(ctx.name().to_string())];
             insts.extend(ctx.prologue().into_iter().map(Item::Inst));
-            for (bb, node) in ctx.func().layout().bbs() {
+            for (bb, node) in ctx.this_func().layout().bbs() {
                 let name = ctx.bb(*bb).name().clone().unwrap();
                 if name != "%entry" {
                     insts.push(Item::Label(ctx.prefix_with_name(&name)));

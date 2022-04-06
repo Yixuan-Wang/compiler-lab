@@ -38,7 +38,7 @@ impl<'a> WrapProgram for Context<'a> {
     fn program_mut(&mut self) -> &mut ir::Program {
         self.program
     }
-    fn func_handle(&self) -> ir::Function {
+    fn this_func_handle(&self) -> ir::Function {
         self.func
     }
 }

@@ -22,7 +22,7 @@ impl<'a> WrapProgram for Context<'a> {
     fn program_mut(&mut self) -> &mut ir::Program {
         self.program
     }
-    fn func_handle(&self) -> ir::Function {
+    fn this_func_handle(&self) -> ir::Function {
         self.func
     }
 }
@@ -69,13 +69,13 @@ impl<'a> Context<'a> {
     // }
 
     pub fn name(&self) -> &str {
-        unsafe { self.func().name().get_unchecked(1..) }
+        unsafe { self.this_func().name().get_unchecked(1..) }
     }
 
     pub fn prefix_with_name(&self, string: &str) -> String {
         format!(
             "{}_{}",
-            unsafe { self.func().name().get_unchecked(1..) },
+            unsafe { self.this_func().name().get_unchecked(1..) },
             unsafe { string.get_unchecked(1..) }
         )
     }
@@ -83,7 +83,7 @@ impl<'a> Context<'a> {
     pub fn prologue(&self) -> Vec<RiscInst> {
         use RiscInst::*;
         let mut insts: Vec<ir::Value> = vec![];
-        for (_bb, node) in self.func().layout().bbs() {
+        for (_bb, node) in self.this_func().layout().bbs() {
             insts.extend(node.insts().keys())
         }
         insts.iter().for_each(|h| {
