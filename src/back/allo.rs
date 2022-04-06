@@ -15,7 +15,7 @@ pub struct AlloReg {
 impl AlloReg {
     pub fn new() -> AlloReg {
         AlloReg {
-            reg_t: Autocount::new(Some(7)),
+            reg_t: Autocount::new(0, Some(7)),
             reg_allo: HashMap::new(),
             reg_owner: HashMap::new(),
         }
