@@ -1,6 +1,6 @@
 use std::fs;
 
-use compiler::{cli, front, back};
+use compiler::{back, cli, front};
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -12,23 +12,22 @@ fn main() -> Result<(), Box<dyn Error>> {
             let koopa = front::into_ir_text(ir)?;
             fs::write(&config.output, koopa)?;
             Ok(())
-        },
+        }
         cli::CompilerMode::Riscv => {
             let riscv = back::into_riscv(ir)?;
             fs::write(&config.output, riscv)?;
             Ok(())
-        },
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
+    use crate::{back, front};
     use std::fs;
-    use crate::{front, back};
 
     fn read_test_file() -> String {
-        let s = String::from_utf8(fs::read("this.test.sysy").unwrap()).unwrap();
-        s
+        String::from_utf8(fs::read("this.test.sysy").unwrap()).unwrap()
     }
 
     #[test]

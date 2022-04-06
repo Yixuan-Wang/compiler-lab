@@ -1,9 +1,9 @@
 use koopa::ir;
-use std::{ops::{Deref, DerefMut}};
+use std::ops::{Deref, DerefMut};
 
 #[derive(Debug)]
 pub struct Item {
-    pub kind: ItemKind
+    pub kind: ItemKind,
 }
 
 #[derive(Debug)]
@@ -43,7 +43,7 @@ impl Ty {
         match ty {
             "int" => Ty::Int,
             "void" => Ty::Void,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }

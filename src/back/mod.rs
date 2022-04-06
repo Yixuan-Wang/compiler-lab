@@ -2,16 +2,15 @@ use std::error::Error;
 
 use crate::{front::Ir, WrapProgram};
 
-mod context;
-mod risc;
-mod gen;
 mod allo;
+mod context;
+mod gen;
+mod risc;
 
 use context::Context;
 use risc::RiscItem as Item;
 
 use self::gen::Generate;
-
 
 pub struct Target(pub String);
 
@@ -29,9 +28,7 @@ impl TryFrom<Ir> for Target {
 
         text.extend(funcs.into_iter().flat_map(|func| {
             let ctx = Context::new(&mut program, func);
-            let mut insts = vec![
-                Item::Label(ctx.name().to_string()),
-            ];
+            let mut insts = vec![Item::Label(ctx.name().to_string())];
             insts.extend(ctx.prologue().into_iter().map(Item::Inst));
             for (bb, node) in ctx.func().layout().bbs() {
                 let name = ctx.bb(*bb).name().clone().unwrap();
@@ -42,9 +39,9 @@ impl TryFrom<Ir> for Target {
                     node.insts()
                         .keys()
                         .flat_map(|&val| val.generate(&ctx))
-                        .map(Item::Inst)
+                        .map(Item::Inst),
                 );
-            };
+            }
             insts.push(Item::Blank);
             insts
         }));

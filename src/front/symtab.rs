@@ -32,9 +32,12 @@ impl Symtab {
 
     pub fn get_val(&self, name: &str) -> Option<ir::Value> {
         for scope in self.scope.iter().rev() {
-            match scope.get(name) {
+            /* match scope.get(name) {
                 Some(val) => return Some(*val),
                 None => (),
+            } */
+            if let Some(val) = scope.get(name) {
+                return Some(*val);
             }
         }
         None

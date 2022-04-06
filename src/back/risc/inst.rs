@@ -4,7 +4,7 @@ use super::reg::RiscReg as Reg;
 
 #[allow(dead_code)]
 /// RISC-V 指令
-/// 
+///
 /// https://pku-minic.github.io/online-doc/#/misc-app-ref/riscv-insts
 pub enum RiscInst {
     /// 按位与 `and rd, rs1, rs2`
@@ -49,7 +49,7 @@ pub enum RiscInst {
     Ret,
     /// 加载立即数 `li rd, imm`
     Li(Reg, i32),
-    /// 寄存器复制 `mv rd, rs` 
+    /// 寄存器复制 `mv rd, rs`
     Mv(Reg, Reg),
     /// 取 `lw rs, imm12(rd)`（取 `rd+imm12` 存入 `rs`）
     Lw(Reg, i32, Reg),

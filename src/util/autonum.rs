@@ -22,9 +22,7 @@ pub struct Autonum {
 
 impl Autonum {
     pub fn new() -> Autonum {
-        let h = HashMap::from([
-            (None, Autocount::new(None))
-        ]);
+        let h = HashMap::from([(None, Autocount::new(None))]);
         Autonum { h }
     }
 
@@ -32,22 +30,28 @@ impl Autonum {
         match self.h.get_mut(&name) {
             Some(c) => {
                 let s = match &name {
-                    Some(n) => format!("{n}_{}", c.next().unwrap()),
-                    None => format!("{}", c.next().unwrap()),
+                    Some(n) => format!("{n}_{}", c.gen().unwrap()),
+                    None => format!("{}", c.gen().unwrap()),
                 };
                 s
-            },
+            }
             None => {
                 let s = match &name {
                     Some(n) => format!("{n}_0"),
-                    None => format!("0"),
+                    None => "0".to_string(),
                 };
                 let mut c = Autocount::new(None);
-                c.next().unwrap();
+                c.gen().unwrap();
                 self.h.insert(name, c);
                 s
-            },
+            }
         }
+    }
+}
+
+impl Default for Autonum {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -58,16 +62,13 @@ pub struct Autocount {
 
 impl Autocount {
     pub fn new(lim: Option<usize>) -> Autocount {
-        Autocount {
-            count: 0,
-            lim,
-        }
+        Autocount { count: 0, lim }
     }
 
-    pub fn next(&mut self) -> Result<usize, &'static str> {
+    pub fn gen(&mut self) -> Result<usize, &'static str> {
         if let Some(up) = self.lim {
             if up == self.count {
-                return Err("Autocount overflow!")
+                return Err("Autocount overflow!");
             }
         }
         let cnt = self.count;
@@ -75,5 +76,7 @@ impl Autocount {
         Ok(cnt)
     }
 
-    pub fn reset(&mut self) { self.count = 0; }
+    pub fn reset(&mut self) {
+        self.count = 0;
+    }
 }

@@ -1,11 +1,8 @@
-use std::{error::Error, collections::HashSet};
+use std::{collections::HashSet, error::Error};
 
-use koopa::ir::{
-    self,
-    builder_traits::*,
-};
+use koopa::ir::{self, builder_traits::*};
 
-use crate::{WrapProgram, util::autonum::Autonum};
+use crate::{util::autonum::Autonum, WrapProgram};
 
 use super::{ast, symtab::Symtab};
 
@@ -35,9 +32,15 @@ macro_rules! val {
 }
 
 impl<'a> WrapProgram for Context<'a> {
-    fn program(&self) -> &ir::Program { self.program }
-    fn program_mut(&mut self) -> &mut ir::Program { self.program }
-    fn func_handle(&self) -> ir::Function { self.func }
+    fn program(&self) -> &ir::Program {
+        self.program
+    }
+    fn program_mut(&mut self) -> &mut ir::Program {
+        self.program
+    }
+    fn func_handle(&self) -> ir::Function {
+        self.func
+    }
 }
 
 impl<'a: 'f, 'f> Context<'a> {
@@ -60,17 +63,13 @@ impl<'a: 'f, 'f> Context<'a> {
         // let ty_kind = ty.kind().clone();
         // let block = func.block;
 
-        let func_data = ir::FunctionData::new(
-            format!("@{}", func.ident),
-         vec![], 
-         (&func.output).into(),
-        );
+        let func_data =
+            ir::FunctionData::new(format!("@{}", func.ident), vec![], (&func.output).into());
         let func = program.new_func(func_data);
 
         let dfg_handle = program.func_mut(func).dfg_mut();
         let zero = dfg_handle.new_value().integer(0);
         let one = dfg_handle.new_value().integer(1);
-        drop(dfg_handle);
 
         Ok(Context {
             program,
@@ -85,7 +84,7 @@ impl<'a: 'f, 'f> Context<'a> {
             table: Symtab::new(),
             loop_stack: Vec::new(),
             variable_namer: Autonum::new(),
-            inst_namer: Autonum::new()
+            inst_namer: Autonum::new(),
         })
     }
 
@@ -157,26 +156,22 @@ impl<'a: 'f, 'f> Context<'a> {
         F: FnOnce(ir::builder::LocalBuilder) -> ir::Value,
     {
         let val = builder_fn(self.dfg_mut().new_value());
-        if let Some(_) = name {
-            self.dfg_mut()
-                .set_value_name(val, name);
+        if name.is_some() {
+            self.dfg_mut().set_value_name(val, name);
         }
         val
     }
 
     pub fn add_mid_value<F>(&mut self, builder_fn: F) -> ir::Value
     where
-        F: FnOnce(ir::builder::LocalBuilder) -> ir::Value
+        F: FnOnce(ir::builder::LocalBuilder) -> ir::Value,
     {
         let name = self.variable_namer.gen(None);
         self.add_value(builder_fn, Some(format!("%{}", name)))
     }
 
     pub fn insert_block(&mut self, block: ir::BasicBlock) {
-        self.layout_mut()
-            .bbs_mut()
-            .push_key_back(block)
-            .unwrap();
+        self.layout_mut().bbs_mut().push_key_back(block).unwrap();
     }
 
     pub fn seal_block(&mut self, block: ir::BasicBlock) {
@@ -206,12 +201,12 @@ impl<'a: 'f, 'f> Context<'a> {
         }
     } */
 
-    /// Return the entry block. 
+    /// Return the entry block.
     /* pub fn entry(&self) -> ir::BasicBlock {
         self.entry.unwrap()
     } */
 
-    /// Return the end block. 
+    /// Return the end block.
     /* pub fn end(&self) -> ir::BasicBlock {
         // self.end.unwrap()
         unimplemented!()
@@ -227,8 +222,7 @@ impl<'a: 'f, 'f> Context<'a> {
 
     /// Return the current block
     pub fn curr(&self) -> ir::BasicBlock {
-        self.curr
-            .unwrap()
+        self.curr.unwrap()
     }
 
     /// Set current block
@@ -255,6 +249,6 @@ impl<'a: 'f, 'f> Context<'a> {
     }
 
     pub fn curr_loop(&mut self) -> (ir::BasicBlock, ir::BasicBlock) {
-        self.loop_stack.last().unwrap().clone()
+        *self.loop_stack.last().unwrap()
     }
 }

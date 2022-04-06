@@ -1,7 +1,8 @@
 pub mod ast;
-#[macro_use] mod context;
-mod symtab;
+#[macro_use]
+mod context;
 mod gen;
+mod symtab;
 
 use lalrpop_util::lalrpop_mod;
 lalrpop_mod! {
@@ -9,8 +10,16 @@ lalrpop_mod! {
     pub parser
 }
 
-use std::{result, ops::{Deref, DerefMut}, io, error::Error};
-use koopa::{ir::{Program, builder_traits::*}, back::KoopaGenerator};
+use koopa::{
+    back::KoopaGenerator,
+    ir::{builder_traits::*, Program},
+};
+use std::{
+    error::Error,
+    io,
+    ops::{Deref, DerefMut},
+    result,
+};
 
 use crate::WrapProgram;
 
@@ -84,7 +93,7 @@ impl<'a> Declare<'a> for ast::Item {
         match self.kind {
             Global() => unimplemented!(),
             Func(ref func) => {
-                let mut ctx = Context::new(program, globals, &func);
+                let mut ctx = Context::new(program, globals, func);
                 // let cur = ctx.add_block("temp");
                 // ctx.insert_block(cur);
                 // let jump_cur = ctx.add_value(val!(jump(cur)), None);
@@ -98,7 +107,6 @@ impl<'a> Declare<'a> for ast::Item {
                     ))
                     || insts.back_key().is_none()
                 {
-                    drop(insts);
                     let zero = ctx.add_value(val!(integer(0)), None);
                     let implicit_ret = ctx.add_value(val!(ret(Some(zero))), None);
                     ctx.bb_node_mut(ctx.curr())

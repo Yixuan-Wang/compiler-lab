@@ -1,4 +1,4 @@
-use std::{env::args};
+use std::env::args;
 
 pub struct Config {
     pub mode: CompilerMode,
@@ -21,16 +21,16 @@ impl Config {
             if idx == 0 {
                 continue;
             }
-            if arg.starts_with("-") {
+            if arg.starts_with('-') {
                 match arg.as_str() {
                     "-koopa" => {
                         mode = CompilerMode::Koopa;
                         input.push_str(args.get(idx + 1).expect("Missing input path!"))
-                    },
+                    }
                     "-riscv" => {
                         mode = CompilerMode::Riscv;
                         input.push_str(args.get(idx + 1).expect("Missing input path!"))
-                    },
+                    }
                     "-o" => output.push_str(args.get(idx + 1).expect("Missing output path!")),
                     _ => unimplemented!(),
                 }
@@ -41,5 +41,11 @@ impl Config {
             input,
             output,
         }
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self::new()
     }
 }
