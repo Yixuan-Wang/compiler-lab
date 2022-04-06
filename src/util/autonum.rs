@@ -17,35 +17,30 @@ macro_rules! auton {
 } */
 
 pub struct Autonum {
-    h: HashMap<Option<String>, Autocount>,
+    h: HashMap<String, Autocount>,
+    temp: Autocount
 }
 
 impl Autonum {
     pub fn new() -> Autonum {
-        let h = HashMap::from([(None, Autocount::new(None))]);
-        Autonum { h }
+        Autonum { h: HashMap::new(), temp: Autocount::new(None) }
     }
 
-    pub fn gen(&mut self, name: Option<String>) -> String {
-        match self.h.get_mut(&name) {
-            Some(c) => {
-                let s = match &name {
-                    Some(n) => format!("{n}_{}", c.gen().unwrap()),
-                    None => format!("{}", c.gen().unwrap()),
-                };
-                s
-            }
+    pub fn gen(&mut self, name: &str) -> String {
+        let s = name.to_string();
+        match self.h.get_mut(&s) {
+            Some(c) => format!("{name}_{}", c.gen().unwrap()),
             None => {
-                let s = match &name {
-                    Some(n) => format!("{n}_0"),
-                    None => "0".to_string(),
-                };
                 let mut c = Autocount::new(None);
                 c.gen().unwrap();
-                self.h.insert(name, c);
-                s
+                self.h.insert(s, c);
+                format!("{name}_0")
             }
         }
+    }
+
+    pub fn gen_temp(&mut self) -> String {
+        format!("{}", self.temp.gen().unwrap())
     }
 }
 
