@@ -1,4 +1,4 @@
-use std::{cell::{RefCell, Ref, RefMut}, fmt::Display};
+use std::cell::{RefCell, Ref, RefMut};
 
 use koopa::ir;
 use crate::WrapProgram;
@@ -36,12 +36,12 @@ impl<'a> Context<'a> {
         self.allo_reg.borrow_mut()
     }
 
-    pub fn with_allo_reg_mut<F, T>(&self, sth: F) -> T
+    /* pub fn with_allo_reg_mut<F, T>(&self, sth: F) -> T
     where
         F: Fn(RefMut<AlloReg>) -> T
     {
         sth(self.allo_reg.borrow_mut())
-    }
+    } */
 
     pub fn on_reg(&self, val: ir::Value) -> bool {
         self.allo_reg().contains_key(val)

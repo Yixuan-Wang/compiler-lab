@@ -21,7 +21,7 @@ pub struct Context<'a> {
     pub inst_namer: Autonum,
     sealed: HashSet<ir::BasicBlock>,
     entry: Option<ir::BasicBlock>,
-    end: Option<ir::BasicBlock>,
+    // end: Option<ir::BasicBlock>,
     curr: Option<ir::BasicBlock>,
     pub zero: ir::Value,
     pub one: ir::Value,
@@ -77,7 +77,7 @@ impl<'a: 'f, 'f> Context<'a> {
             globals,
             func,
             entry: None,
-            end: None,
+            // end: None,
             curr: None,
             zero,
             one,
@@ -92,8 +92,6 @@ impl<'a: 'f, 'f> Context<'a> {
     /// Init the function wrapped inside the context
     /// Must be called after [`Context::from`]
     fn init(&mut self) {
-        use ir::Type;
-        use ir::TypeKind::*;
         let entry = self.add_block("entry");
         // let end = self.add_block("end");
         self.insert_block(entry);
@@ -201,31 +199,31 @@ impl<'a: 'f, 'f> Context<'a> {
         }
     }
 
-    pub fn kind(&self) -> &ir::TypeKind {
+    /* pub fn kind(&self) -> &ir::TypeKind {
         match self.func().ty().kind() {
             ir::TypeKind::Function(_, out) => out.kind(),
             _ => unreachable!(),
         }
-    }
+    } */
 
     /// Return the entry block. 
-    pub fn entry(&self) -> ir::BasicBlock {
+    /* pub fn entry(&self) -> ir::BasicBlock {
         self.entry.unwrap()
-    }
+    } */
 
     /// Return the end block. 
-    pub fn end(&self) -> ir::BasicBlock {
+    /* pub fn end(&self) -> ir::BasicBlock {
         // self.end.unwrap()
         unimplemented!()
-    }
+    } */
 
     /// Return the latest block
-    pub fn latest_block(&self) -> ir::BasicBlock {
+    /* pub fn latest_block(&self) -> ir::BasicBlock {
         *self.layout()
              .bbs()
              .back_key()
              .unwrap()
-    }
+    } */
 
     /// Return the current block
     pub fn curr(&self) -> ir::BasicBlock {

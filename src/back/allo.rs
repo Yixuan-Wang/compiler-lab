@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use koopa::ir;
 
 use crate::util::autonum::Autocount;
-use super::risc::{RiscReg as Reg, RiscInst};
+use super::risc::RiscReg as Reg;
 
 pub struct AlloReg {
     reg_allo: HashMap<ir::Value, Reg>,
@@ -42,9 +42,9 @@ impl AlloReg {
         reg
     }
 
-    pub fn get(&self, val: ir::Value) -> Option<&Reg> {
+    /* pub fn get(&self, val: ir::Value) -> Option<&Reg> {
         self.reg_allo.get(&val)
-    }
+    } */
 
     // pub fn get_or_appoint(&mut self, val: ir::Value) -> Reg {
     //     match self.get(val) {

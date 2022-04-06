@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 #[cfg(test)]
 mod test {
-    use std::fs::{self, read_dir};
+    use std::fs;
     use crate::{front, back};
 
     fn read_test_file() -> String {

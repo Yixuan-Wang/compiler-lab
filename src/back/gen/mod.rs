@@ -21,7 +21,7 @@ pub trait Generate<'a> {
 impl<'a> Generate<'a> for ir::entities::Value {
     fn generate(&self, ctx: &'a Context) -> Vec<risc::RiscInst> {
         use ir::entities::ValueKind::*;
-        use risc::{RiscItem as Item, RiscInst as Inst, RiscReg as Reg};
+        use risc::{RiscInst as Inst, RiscReg as Reg};
         let value_data = ctx.value(*self);
         match value_data.kind() {
             Return(r) => {
