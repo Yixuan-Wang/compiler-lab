@@ -166,7 +166,7 @@ impl<'a: 'f, 'f> Context<'a> {
     where
         F: FnOnce(ir::builder::LocalBuilder) -> ir::Value,
     {
-        let name = self.variable_namer.gen(None);
+        let name = self.variable_namer.gen_temp();
         self.add_value(builder_fn, Some(format!("%{}", name)))
     }
 
@@ -186,7 +186,7 @@ impl<'a: 'f, 'f> Context<'a> {
                 .push_key_back(val)
                 .unwrap();
         } else {
-            let ghost_block_name = self.inst_namer.gen(Some("ghost".to_string()));
+            let ghost_block_name = self.inst_namer.gen("ghost");
             let ghost_block = self.add_block(&ghost_block_name);
             self.insert_block(ghost_block);
             self.set_curr(ghost_block);

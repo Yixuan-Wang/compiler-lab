@@ -18,7 +18,7 @@ impl<'f> Generate<'f> for ast::LAndExp {
         match self {
             Self::Unary(p) => p.generate(ctx),
             Self::Binary(l, r) => {
-                let res_name = ctx.variable_namer.gen(Some("%lazy_land".to_string()));
+                let res_name = ctx.variable_namer.gen("%lazy_land");
                 let res = ctx.add_value(val!(alloc(ir::Type::get_i32())), Some(res_name));
                 ctx.insert_inst(res, ctx.curr());
 
@@ -26,8 +26,8 @@ impl<'f> Generate<'f> for ast::LAndExp {
                 let init_res = ctx.add_value(val!(store(zero, res)), None);
                 ctx.insert_inst(init_res, ctx.curr());
 
-                let block_right_name = ctx.inst_namer.gen(Some("lazy_land_right".to_string()));
-                let block_skip_name = ctx.inst_namer.gen(Some("lazy_land_skip".to_string()));
+                let block_right_name = ctx.inst_namer.gen("lazy_land_right");
+                let block_skip_name = ctx.inst_namer.gen("lazy_land_skip");
 
                 let block_right = ctx.add_block(&block_right_name);
                 let block_skip = ctx.add_block(&block_skip_name);
@@ -71,7 +71,7 @@ impl<'f> Generate<'f> for ast::LOrExp {
         match self {
             Self::Unary(p) => p.generate(ctx),
             Self::Binary(l, r) => {
-                let res_name = ctx.variable_namer.gen(Some("%lazy_lor".to_string()));
+                let res_name = ctx.variable_namer.gen("%lazy_lor");
                 let res = ctx.add_value(val!(alloc(ir::Type::get_i32())), Some(res_name));
                 ctx.insert_inst(res, ctx.curr());
 
@@ -81,8 +81,8 @@ impl<'f> Generate<'f> for ast::LOrExp {
                 let init_res = ctx.add_value(val!(store(one, res)), None);
                 ctx.insert_inst(init_res, ctx.curr());
 
-                let block_right_name = ctx.inst_namer.gen(Some("lazy_lor_right".to_string()));
-                let block_skip_name = ctx.inst_namer.gen(Some("lazy_lor_skip".to_string()));
+                let block_right_name = ctx.inst_namer.gen("lazy_lor_right");
+                let block_skip_name = ctx.inst_namer.gen("lazy_lor_skip");
 
                 let block_right = ctx.add_block(&block_right_name);
                 let block_skip = ctx.add_block(&block_skip_name);

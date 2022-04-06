@@ -59,9 +59,9 @@ impl<'f> Generate<'f> for ast::StmtKind {
                 ctx.insert_inst(store, ctx.curr());
             }
             If(exp, then, alt) => {
-                let block_name_then = ctx.inst_namer.gen(Some("then".to_string()));
-                let block_name_else = ctx.inst_namer.gen(Some("else".to_string()));
-                let block_name_endif = ctx.inst_namer.gen(Some("endif".to_string()));
+                let block_name_then = ctx.inst_namer.gen("then");
+                let block_name_else = ctx.inst_namer.gen("else");
+                let block_name_endif = ctx.inst_namer.gen("endif");
 
                 let block_then = ctx.add_block(&block_name_then);
                 let block_endif = ctx.add_block(&block_name_endif);
@@ -100,9 +100,9 @@ impl<'f> Generate<'f> for ast::StmtKind {
                 ctx.set_curr(block_endif);
             }
             While(exp, body) => {
-                let block_name_while = ctx.inst_namer.gen(Some("while".to_string()));
-                let block_name_loop = ctx.inst_namer.gen(Some("loop".to_string()));
-                let block_name_endwhile = ctx.inst_namer.gen(Some("endwhile".to_string()));
+                let block_name_while = ctx.inst_namer.gen("while");
+                let block_name_loop = ctx.inst_namer.gen("loop");
+                let block_name_endwhile = ctx.inst_namer.gen("endwhile");
 
                 let block_while = ctx.add_block(&block_name_while);
                 let block_loop = ctx.add_block(&block_name_loop);
