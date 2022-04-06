@@ -53,11 +53,10 @@ impl<'f> Generate<'f> for ast::LAndExp {
                     ctx.insert_inst(jump, ctx.curr());
                     ctx.seal_block(ctx.curr());
                 }
-                
 
                 ctx.insert_block(block_skip);
                 ctx.set_curr(block_skip);
-                
+
                 let load_res = ctx.add_mid_value(val!(load(res)));
                 ctx.insert_inst(load_res, ctx.curr());
                 load_res
@@ -109,11 +108,10 @@ impl<'f> Generate<'f> for ast::LOrExp {
                     ctx.insert_inst(jump, ctx.curr());
                     ctx.seal_block(ctx.curr());
                 }
-                
 
                 ctx.insert_block(block_skip);
                 ctx.set_curr(block_skip);
-                
+
                 let load_res = ctx.add_mid_value(val!(load(res)));
                 ctx.insert_inst(load_res, ctx.curr());
                 load_res

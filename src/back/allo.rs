@@ -1,8 +1,8 @@
-use std::collections::HashMap;
 use koopa::ir;
+use std::collections::HashMap;
 
+use super::risc::RiscReg as Reg;
 use crate::util::autonum::Autocount;
-use super::risc::{RiscReg as Reg, RiscInst};
 
 pub struct AlloReg {
     reg_allo: HashMap<ir::Value, Reg>,
@@ -23,11 +23,11 @@ impl AlloReg {
 
     /// 分配 t 寄存器，可能覆盖
     pub fn allo_reg_t(&mut self, val: ir::Value) -> Reg {
-        let reg = Reg::T(match self.reg_t.next() {
+        let reg = Reg::T(match self.reg_t.gen() {
             Ok(t) => t,
             Err(_) => {
                 self.reg_t.reset();
-                self.reg_t.next().unwrap()
+                self.reg_t.gen().unwrap()
             }
         } as u8);
         self.appoint_reg(val, reg);
@@ -42,9 +42,9 @@ impl AlloReg {
         reg
     }
 
-    pub fn get(&self, val: ir::Value) -> Option<&Reg> {
+    /* pub fn get(&self, val: ir::Value) -> Option<&Reg> {
         self.reg_allo.get(&val)
-    }
+    } */
 
     // pub fn get_or_appoint(&mut self, val: ir::Value) -> Reg {
     //     match self.get(val) {
@@ -77,17 +77,15 @@ impl AlloStack {
     }
 
     pub fn insert(&mut self, val: ir::Value, data: &ir::entities::ValueData) {
-        use ir::{ValueKind::*, TypeKind::*};
+        use ir::{TypeKind::*, ValueKind::*};
         let ty_size = match data.ty().kind() {
             Int32 => 4,
             Unit => 0,
             Array(_, _) => unimplemented!(),
-            Pointer(t) => {
-                match t.kind() {
-                    Int32 => 4,
-                    Unit => unreachable!(),
-                    _ => unimplemented!()
-                }
+            Pointer(t) => match t.kind() {
+                Int32 => 4,
+                Unit => unreachable!(),
+                _ => unimplemented!(),
             },
             Function(_, _) => unimplemented!(),
         };

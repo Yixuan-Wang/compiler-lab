@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+#[allow(dead_code)]
 #[derive(Hash, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RiscReg {
     A(u8),

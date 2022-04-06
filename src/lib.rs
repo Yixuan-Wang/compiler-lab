@@ -1,7 +1,7 @@
-pub mod front;
 pub mod back;
-pub mod util;
 pub mod cli;
+pub mod front;
+pub mod util;
 
 use koopa::ir;
 

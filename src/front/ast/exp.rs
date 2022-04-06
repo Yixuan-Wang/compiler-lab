@@ -10,11 +10,11 @@ pub enum PrimaryExp {
     LVal(LVal),
 }
 
-
-
 impl PrimaryExp {
-    pub fn literal<'ip>(src: &'ip str, radix: u32, prefix_len: usize) -> PrimaryExp {
-        PrimaryExp::Literal(i32::from_str_radix(unsafe { &src.get_unchecked(prefix_len..) }, radix).unwrap())
+    pub fn literal(src: &str, radix: u32, prefix_len: usize) -> PrimaryExp {
+        PrimaryExp::Literal(
+            i32::from_str_radix(unsafe { src.get_unchecked(prefix_len..) }, radix).unwrap(),
+        )
     }
 }
 

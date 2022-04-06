@@ -21,7 +21,7 @@ pub trait Generate<'a> {
 impl<'a> Generate<'a> for ir::entities::Value {
     fn generate(&self, ctx: &'a Context) -> Vec<risc::RiscInst> {
         use ir::entities::ValueKind::*;
-        use risc::{RiscItem as Item, RiscInst as Inst, RiscReg as Reg};
+        use risc::{RiscInst as Inst, RiscReg as Reg};
         let value_data = ctx.value(*self);
         match value_data.kind() {
             Return(r) => {
@@ -48,7 +48,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                     v.extend(rinst);
                     // let lreg = ctx.allo_reg_mut().allo_reg_t(l);
                     // let rreg = ctx.allo_reg_mut().allo_reg_t(r);
-                    
+
                     // for (val, reg) in [(l, lreg), (r, rreg)] {
                     //     if let Integer(i) = ctx.value(val).kind() {
                     //         v.push(Inst::Li(reg, i.value()))
@@ -58,38 +58,26 @@ impl<'a> Generate<'a> for ir::entities::Value {
                     // }
                     let offset = *ctx.allo_stack().get(*self).unwrap();
                     match bin.op() {
-                        Eq => v.extend([
-                            Inst::Xor(dreg, lreg, rreg),
-                            Inst::Seqz(dreg, dreg),
-                        ]),
-                        NotEq => v.extend([
-                            Inst::Xor(dreg, lreg, rreg),
-                            Inst::Snez(dreg, dreg),
-                        ]),
+                        Eq => v.extend([Inst::Xor(dreg, lreg, rreg), Inst::Seqz(dreg, dreg)]),
+                        NotEq => v.extend([Inst::Xor(dreg, lreg, rreg), Inst::Snez(dreg, dreg)]),
                         And => v.push(Inst::And(dreg, lreg, rreg)),
                         Or => v.push(Inst::Or(dreg, lreg, rreg)),
                         Xor => v.push(Inst::Xor(dreg, lreg, rreg)),
                         Lt => v.push(Inst::Slt(dreg, lreg, rreg)),
                         Gt => v.push(Inst::Sgt(dreg, lreg, rreg)),
-                        Le => v.extend([
-                            Inst::Sgt(dreg, lreg, rreg),
-                            Inst::Xori(dreg, dreg, 1),
-                        ]),
-                        Ge => v.extend([
-                            Inst::Slt(dreg, lreg, rreg),
-                            Inst::Xori(dreg, dreg, 1),
-                        ]),
+                        Le => v.extend([Inst::Sgt(dreg, lreg, rreg), Inst::Xori(dreg, dreg, 1)]),
+                        Ge => v.extend([Inst::Slt(dreg, lreg, rreg), Inst::Xori(dreg, dreg, 1)]),
                         Add => v.push(Inst::Add(dreg, lreg, rreg)),
                         Sub => v.push(Inst::Sub(dreg, lreg, rreg)),
                         Mul => v.push(Inst::Mul(dreg, lreg, rreg)),
                         Div => v.push(Inst::Div(dreg, lreg, rreg)),
                         Mod => v.push(Inst::Rem(dreg, lreg, rreg)),
-                        _ => todo!()
+                        _ => todo!(),
                     };
                     v.push(Inst::Sw(dreg, offset, Reg::Sp))
                 }
                 v
-            },
+            }
             Integer(_) => vec![],
             /* {
                 if !ctx.on_reg(*self) {
@@ -111,10 +99,15 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 v.extend(s.value().generate(ctx));
                 let (reg, inst) = s.value().to_reg(ctx, None);
                 v.extend(inst);
-                let offset = *ctx.allo_stack().get(s.dest()).expect(&format!("BackendError: {} not found", ctx.value(s.dest()).name().clone().unwrap()));
+                let offset = *ctx.allo_stack().get(s.dest()).unwrap_or_else(|| {
+                    panic!(
+                        "BackendError: {} not found",
+                        ctx.value(s.dest()).name().clone().unwrap()
+                    )
+                });
                 v.push(Inst::Sw(reg, offset, Reg::Sp));
                 v
-            },
+            }
             Undef(_) => vec![],
             Branch(b) => {
                 let mut v = vec![];
@@ -130,7 +123,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                     Inst::J(ctx.prefix_with_name(&false_block_name)),
                 ]);
                 v
-            },
+            }
             Jump(j) => {
                 let target = j.target();
                 let target_block_name = ctx.bb(target).name().clone().unwrap();

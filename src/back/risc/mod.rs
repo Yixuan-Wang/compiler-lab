@@ -6,6 +6,7 @@ use std::fmt::Display;
 pub use inst::*;
 pub use reg::*;
 
+#[allow(dead_code)]
 pub enum RiscItem {
     Text,
     Data,

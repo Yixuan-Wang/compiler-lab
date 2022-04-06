@@ -1,9 +1,12 @@
-use std::{cell::{RefCell, Ref, RefMut}, fmt::Display};
+use std::cell::{Ref, RefCell, RefMut};
 
-use koopa::ir;
 use crate::WrapProgram;
+use koopa::ir;
 
-use super::{allo::{AlloReg, AlloStack}, risc::{MAX_IMM, RiscInst, RiscReg}};
+use super::{
+    allo::{AlloReg, AlloStack},
+    risc::{RiscInst, RiscReg, MAX_IMM},
+};
 
 pub struct Context<'a> {
     pub program: &'a mut ir::Program,
@@ -13,14 +16,20 @@ pub struct Context<'a> {
 }
 
 impl<'a> WrapProgram for Context<'a> {
-    fn program(&self) -> &ir::Program { self.program }
-    fn program_mut(&mut self) -> &mut ir::Program { self.program }
-    fn func_handle(&self) -> ir::Function { self.func }
+    fn program(&self) -> &ir::Program {
+        self.program
+    }
+    fn program_mut(&mut self) -> &mut ir::Program {
+        self.program
+    }
+    fn func_handle(&self) -> ir::Function {
+        self.func
+    }
 }
 
 impl<'a> Context<'a> {
     pub fn new(program: &'a mut ir::Program, func: ir::Function) -> Context {
-        Context { 
+        Context {
             program,
             func,
             allo_reg: RefCell::new(AlloReg::new()),
@@ -36,12 +45,12 @@ impl<'a> Context<'a> {
         self.allo_reg.borrow_mut()
     }
 
-    pub fn with_allo_reg_mut<F, T>(&self, sth: F) -> T
+    /* pub fn with_allo_reg_mut<F, T>(&self, sth: F) -> T
     where
         F: Fn(RefMut<AlloReg>) -> T
     {
         sth(self.allo_reg.borrow_mut())
-    }
+    } */
 
     pub fn on_reg(&self, val: ir::Value) -> bool {
         self.allo_reg().contains_key(val)
@@ -64,8 +73,12 @@ impl<'a> Context<'a> {
     }
 
     pub fn prefix_with_name(&self, string: &str) -> String {
-        format!("{}_{}", unsafe { self.func().name().get_unchecked(1..) }, unsafe { string.get_unchecked(1..) })
-    } 
+        format!(
+            "{}_{}",
+            unsafe { self.func().name().get_unchecked(1..) },
+            unsafe { string.get_unchecked(1..) }
+        )
+    }
 
     pub fn prologue(&self) -> Vec<RiscInst> {
         use RiscInst::*;
@@ -80,16 +93,13 @@ impl<'a> Context<'a> {
         let size = self.allo_stack().size_aligned();
         if size == 0 {
             vec![]
-        }
-        else if size > MAX_IMM {
+        } else if size > MAX_IMM {
             vec![
                 Li(RiscReg::T(0), -size),
                 Add(RiscReg::Sp, RiscReg::Sp, RiscReg::T(0)),
             ]
         } else {
-            vec![
-                Addi(RiscReg::Sp, RiscReg::Sp, -size),
-            ]
+            vec![Addi(RiscReg::Sp, RiscReg::Sp, -size)]
         }
     }
 
@@ -98,16 +108,13 @@ impl<'a> Context<'a> {
         let size = self.allo_stack().size_aligned();
         if size == 0 {
             vec![]
-        }
-        else if size > MAX_IMM {
+        } else if size > MAX_IMM {
             vec![
                 Li(RiscReg::T(0), size),
                 Add(RiscReg::Sp, RiscReg::Sp, RiscReg::T(0)),
             ]
         } else {
-            vec![
-                Addi(RiscReg::Sp, RiscReg::Sp, size),
-            ]
+            vec![Addi(RiscReg::Sp, RiscReg::Sp, size)]
         }
     }
 }
