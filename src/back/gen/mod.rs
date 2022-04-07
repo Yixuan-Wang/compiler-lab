@@ -41,7 +41,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                     let (l, r) = (bin.lhs(), bin.rhs());
                     v.extend(l.generate(ctx));
                     v.extend(r.generate(ctx));
-                    let dreg = ctx.allo_reg_mut().allo_reg_t(*self);
+                    let dreg = ctx.allo_reg_mut().appoint_temp_reg(*self);
                     let (lreg, linst) = l.to_reg(ctx, None);
                     let (rreg, rinst) = r.to_reg(ctx, None);
                     v.extend(linst);

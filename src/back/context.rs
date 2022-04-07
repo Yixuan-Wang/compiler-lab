@@ -4,15 +4,16 @@ use crate::WrapProgram;
 use koopa::ir;
 
 use super::{
-    allo::{AlloReg, AlloStack},
+    regmap::RegMap,
     risc::{RiscInst, RiscReg, MAX_IMM},
+    stackmap::StackMap,
 };
 
 pub struct Context<'a> {
     pub program: &'a mut ir::Program,
     func: ir::Function,
-    allo_reg: RefCell<AlloReg>,
-    allo_stack: RefCell<AlloStack>,
+    allo_reg: RefCell<RegMap>,
+    allo_stack: RefCell<StackMap>,
 }
 
 impl<'a> WrapProgram for Context<'a> {
@@ -32,16 +33,16 @@ impl<'a> Context<'a> {
         Context {
             program,
             func,
-            allo_reg: RefCell::new(AlloReg::new()),
-            allo_stack: RefCell::new(AlloStack::new()),
+            allo_reg: RefCell::new(RegMap::new()),
+            allo_stack: RefCell::new(StackMap::new()),
         }
     }
 
-    pub fn allo_reg(&self) -> Ref<AlloReg> {
+    pub fn allo_reg(&self) -> Ref<RegMap> {
         self.allo_reg.borrow()
     }
 
-    pub fn allo_reg_mut(&self) -> RefMut<AlloReg> {
+    pub fn allo_reg_mut(&self) -> RefMut<RegMap> {
         self.allo_reg.borrow_mut()
     }
 
@@ -56,11 +57,11 @@ impl<'a> Context<'a> {
         self.allo_reg().contains_key(val)
     }
 
-    pub fn allo_stack(&self) -> Ref<AlloStack> {
+    pub fn allo_stack(&self) -> Ref<StackMap> {
         self.allo_stack.borrow()
     }
 
-    pub fn allo_stack_mut(&self) -> RefMut<AlloStack> {
+    pub fn allo_stack_mut(&self) -> RefMut<StackMap> {
         self.allo_stack.borrow_mut()
     }
 

@@ -2,10 +2,12 @@ use std::error::Error;
 
 use crate::{front::Ir, WrapProgram};
 
-mod allo;
+mod regmap;
+mod stackmap;
 mod context;
 mod gen;
 mod risc;
+mod allocate;
 
 use context::Context;
 use risc::RiscItem as Item;

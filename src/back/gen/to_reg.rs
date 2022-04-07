@@ -23,7 +23,7 @@ impl<'a> ToReg<'a> for Value {
         let value_data = ctx.value(*self);
         let reg = match ideal {
             Some(reg) => reg,
-            None => ctx.allo_reg_mut().allo_reg_t(*self),
+            None => ctx.allo_reg_mut().appoint_temp_reg(*self),
         };
         match value_data.kind() {
             Integer(i) => (reg, vec![Li(reg, i.value())]),
