@@ -43,6 +43,7 @@ mod test {
         let koopa = front::into_ir(source);
         let koopa = front::into_ir_text(koopa).unwrap();
         print!("{}", koopa);
+        fs::write("this.test.koopa", koopa).unwrap();
     }
 
     #[test]
@@ -51,5 +52,6 @@ mod test {
         let koopa = front::into_ir(source);
         let riscv = back::into_riscv(koopa).unwrap();
         print!("{}", riscv);
+        fs::write("this.test.asm", riscv).unwrap();
     }
 }
