@@ -39,8 +39,6 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 let mut v: Vec<Inst> = vec![];
                 if !ctx.on_reg(*self) {
                     let (l, r) = (bin.lhs(), bin.rhs());
-                    v.extend(l.generate(ctx));
-                    v.extend(r.generate(ctx));
                     let dreg = ctx.allo_reg_mut().allo_reg_t(*self);
                     let (lreg, linst) = l.to_reg(ctx, None);
                     let (rreg, rinst) = r.to_reg(ctx, None);
@@ -96,7 +94,6 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 if let Undef(_) = ctx.value(s.value()).kind() {
                     return v;
                 }
-                v.extend(s.value().generate(ctx));
                 let (reg, inst) = s.value().to_reg(ctx, None);
                 v.extend(inst);
                 let offset = *ctx.allo_stack().get(s.dest()).unwrap_or_else(|| {
