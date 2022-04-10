@@ -53,8 +53,8 @@ impl Ty {
 impl From<&Ty> for ir::Type {
     fn from(t: &Ty) -> Self {
         match t {
-            Ty::Int => ir::Type::get_i32(),
-            Ty::Void => ir::Type::get_unit(),
+            Ty::Int => ty!(i32),
+            Ty::Void => ty!(()),
         }
     }
 }
@@ -122,4 +122,6 @@ pub struct Param {
 }
 
 pub use exp::*;
+
+use crate::ty;
 mod exp;

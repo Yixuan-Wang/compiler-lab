@@ -1,12 +1,14 @@
 // #[macro_use] use super::context;
 // use crate::auton;
-use crate::WrapProgram;
+use crate::{WrapProgram, ty};
 
 use super::ast;
 use super::context::Context;
 use koopa::ir::{self, builder_traits::*};
 
 mod eval;
+
+pub mod prelude;
 
 pub mod lazy;
 pub use lazy::*;
@@ -182,10 +184,10 @@ impl<'f> Generate<'f> for ast::Decl {
                         Some(v) => ctx.add_value(val!(integer(v)), None),
                         None => e.generate(ctx),
                     },
-                    None => ctx.add_value(val!(undef(ir::Type::get_i32())), None),
+                    None => ctx.add_value(val!(undef(ty!(i32))), None),
                 };
                 let alloc = ctx.add_value(
-                    val!(alloc(ir::Type::get_i32())),
+                    val!(alloc(ty!(i32))),
                     Some(format!("@{}", &self.ident)),
                 );
                 ctx.table_mut().insert_val(&self.ident, alloc);
@@ -201,7 +203,7 @@ impl<'f> Generate<'f> for (&ast::Param, ir::Value) {
     type Val = ();
     fn generate(&self, ctx: &'f mut Context) -> Self::Val {
         let alloc = ctx.add_value(
-            val!(alloc(ir::Type::get_i32())),
+            val!(alloc(ty!(i32))),
             Some(format!("@{}", &self.0.ident)),
         );
         ctx.table_mut().insert_val(&self.0.ident, alloc);

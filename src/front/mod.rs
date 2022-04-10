@@ -22,7 +22,7 @@ use std::{
     result,
 };
 
-use self::symtab::{FuncTab, ValTab};
+use self::{symtab::{FuncTab, ValTab}, gen::prelude::with_prelude};
 use self::declare::Declare;
 
 
@@ -65,6 +65,7 @@ impl TryFrom<Vec<ast::Item>> for Ir {
         let mut program = Program::new();
         let mut func_tab = FuncTab::new();
         let mut global_val_tab = ValTab::new();
+        with_prelude(&mut program, &mut func_tab);
         for item in value {
             item.declare(&mut program, &mut func_tab, &mut global_val_tab);
         }

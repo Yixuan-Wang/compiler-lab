@@ -29,6 +29,10 @@ impl TryFrom<Ir> for Target {
         let mut code = vec![];
 
         code.extend(funcs.into_iter().flat_map(|func| {
+            if program.func(func).layout().entry_bb().is_none() {
+                return vec![]
+            }
+
             let ctx = Context::new(&mut program, &mut stack, func);
             let mut insts = vec![
                 Item::Text,

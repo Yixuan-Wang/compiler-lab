@@ -95,7 +95,7 @@ impl<'a: 'f, 'f> Context<'a> {
         // self.insert_block(end);
         /* let ret_alloc = match self.kind() {
             Int32 => {
-                let val = self.add_value(val!(alloc(Type::get_i32())), Some("%ret"));
+                let val = self.add_value(val!(alloc(ty!(i32))), Some("%ret"));
                 self.insert_inst(val, entry);
                 self.table.Mod("%ret".to_string(), val);
                 Some(val)

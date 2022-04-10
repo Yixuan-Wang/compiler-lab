@@ -1,3 +1,5 @@
+use crate::ty;
+
 use super::*;
 
 /*
@@ -19,7 +21,7 @@ impl<'f> Generate<'f> for ast::LAndExp {
             Self::Unary(p) => p.generate(ctx),
             Self::Binary(l, r) => {
                 let res_name = ctx.variable_namer.gen("%lazy_land");
-                let res = ctx.add_value(val!(alloc(ir::Type::get_i32())), Some(res_name));
+                let res = ctx.add_value(val!(alloc(ty!(i32))), Some(res_name));
                 ctx.insert_inst(res, ctx.curr());
 
                 let zero = ctx.zero;
@@ -72,7 +74,7 @@ impl<'f> Generate<'f> for ast::LOrExp {
             Self::Unary(p) => p.generate(ctx),
             Self::Binary(l, r) => {
                 let res_name = ctx.variable_namer.gen("%lazy_lor");
-                let res = ctx.add_value(val!(alloc(ir::Type::get_i32())), Some(res_name));
+                let res = ctx.add_value(val!(alloc(ty!(i32))), Some(res_name));
                 ctx.insert_inst(res, ctx.curr());
 
                 let one = ctx.one;
