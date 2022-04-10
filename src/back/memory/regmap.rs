@@ -1,7 +1,7 @@
 use koopa::ir;
 use std::collections::HashMap;
 
-use super::risc::RiscReg as Reg;
+use crate::back::risc::RiscReg as Reg;
 use crate::util::autonum::Autocount;
 
 pub struct RegMap {

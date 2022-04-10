@@ -1,6 +1,8 @@
 use koopa::ir;
 
-trait Allocate {
+use super::risc;
+
+pub trait Allocate {
     /// 获得该类型对应的空间大小
     fn allocate(&self) -> i32 {
         0
@@ -30,8 +32,20 @@ impl Allocate for ir::entities::ValueData {
         use ir::ValueKind::*;
         let ty_size = self.ty().allocate();
         match self.kind() {
-            Alloc(_) | Binary(_) => ty_size,
+            Alloc(_) | Binary(_) | Call(_) => ty_size,
             _ => 0,
         }
+    }
+}
+
+impl Allocate for risc::RiscReg {
+    fn allocate(&self) -> i32 {
+        4
+    }
+}
+
+impl Allocate for i32 {
+    fn allocate(&self) -> i32 {
+        *self
     }
 }

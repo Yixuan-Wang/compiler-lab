@@ -8,6 +8,7 @@ use crate::back::{
     Context,
 };
 use crate::WrapProgram;
+use crate::frame;
 
 /// 将一个值存入寄存器，并生成所需的 RISC-V 指令
 pub trait ToReg<'a> {
@@ -23,17 +24,35 @@ impl<'a> ToReg<'a> for Value {
         let value_data = ctx.value(*self);
         let reg = match ideal {
             Some(reg) => reg,
-            None => ctx.allo_reg_mut().appoint_temp_reg(*self),
+            None => ctx.reg_map_mut().appoint_temp_reg(*self),
         };
         match value_data.kind() {
             Integer(i) => (reg, vec![Li(reg, i.value())]),
-            Binary(_) => {
-                let offset = *ctx.allo_stack().get(*self).unwrap();
+            Binary(_) | Call(_) => {
+                let offset = frame!(ctx).get(*self);
                 (reg, vec![Lw(reg, offset, Reg::Sp)])
             }
             Load(l) => {
-                let offset = *ctx.allo_stack().get(l.src()).unwrap();
+                let offset = frame!(ctx).get(l.src());
                 (reg, vec![Lw(reg, offset, Reg::Sp)])
+            }
+            FuncArgRef(a) => {
+                let i = a.index();
+                if i >= 8 {
+                    (
+                        reg,
+                        vec![
+                            Inst::Lw(reg, frame!(ctx).get(*self), Reg::Sp),
+                        ]
+                    )
+                } else {
+                    (
+                        reg,
+                        vec![
+                            Inst::Mv(reg, Reg::A(i.try_into().unwrap())),
+                        ]
+                    )
+                }
             }
             _ => todo!(),
         }

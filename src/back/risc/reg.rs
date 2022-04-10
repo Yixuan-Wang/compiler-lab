@@ -13,10 +13,12 @@ pub enum RiscReg {
     /// - `x5-7` `t0-2`
     /// - `x28-31` `t3-6`
     T(u8),
-    /// `x2`，栈指针，调用者保存
-    Sp,
     /// `x0`, 恒为 0
     Zero,
+    /// `x1`, 返回地址
+    Ra,
+    /// `x2`，栈指针，调用者保存
+    Sp,
 }
 
 impl Display for RiscReg {
@@ -25,8 +27,9 @@ impl Display for RiscReg {
         match self {
             A(i) => write!(f, "a{i}"),
             T(i) => write!(f, "t{i}"),
-            Sp => write!(f, "sp"),
             Zero => write!(f, "zero"),
+            Ra => write!(f, "ra"),
+            Sp => write!(f, "sp"),
         }
     }
 }

@@ -1,18 +1,17 @@
-use std::error::Error;
+use std::{error::Error, cell::RefCell};
 
 use crate::{front::Ir, WrapProgram};
 
-mod regmap;
-mod stackmap;
+mod allocate;
 mod context;
 mod gen;
+mod memory;
 mod risc;
-mod allocate;
 
 use context::Context;
 use risc::RiscItem as Item;
 
-use self::gen::Generate;
+use self::{gen::Generate, memory::stack::StackMap, risc::RiscLabel};
 
 pub struct Target(pub String);
 
@@ -25,17 +24,23 @@ impl TryFrom<Ir> for Target {
     type Error = Box<dyn Error>;
     fn try_from(ir: Ir) -> Result<Self, Self::Error> {
         let mut program = ir.0;
+        let mut stack = RefCell::new(StackMap::new());
         let funcs = program.func_layout().to_vec();
-        let mut text = vec![Item::Text, Item::Global("main".to_string())];
+        let mut code = vec![];
 
-        text.extend(funcs.into_iter().flat_map(|func| {
-            let ctx = Context::new(&mut program, func);
-            let mut insts = vec![Item::Label(ctx.name().to_string())];
+        code.extend(funcs.into_iter().flat_map(|func| {
+            let ctx = Context::new(&mut program, &mut stack, func);
+            let mut insts = vec![
+                Item::Text,
+                Item::Global(RiscLabel::new(ctx.name())),
+                Item::Label(RiscLabel::new(ctx.name())),
+            ];
+            ctx.stack_mut().new_frame(func);
             insts.extend(ctx.prologue().into_iter().map(Item::Inst));
             for (bb, node) in ctx.this_func().layout().bbs() {
                 let name = ctx.bb(*bb).name().clone().unwrap();
                 if name != "%entry" {
-                    insts.push(Item::Label(ctx.prefix_with_name(&name)));
+                    insts.push(Item::Label(ctx.label(&name)));
                 }
                 insts.extend(
                     node.insts()
@@ -44,15 +49,16 @@ impl TryFrom<Ir> for Target {
                         .map(Item::Inst),
                 );
             }
+            insts.push(Item::Label(RiscLabel::new("end").with_prefix(ctx.name())));
+            insts.extend(ctx.epilogue().into_iter().map(Item::Inst));
             insts.push(Item::Blank);
             insts
         }));
 
         Ok(Target(
-            text.iter()
-                .map(|i| format!("{i}"))
-                .collect::<Vec<_>>()
-                .join("\n"),
+            code.iter()
+                .map(|i| i.to_string())
+                .collect::<String>()
         ))
     }
 }
