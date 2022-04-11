@@ -2,15 +2,20 @@ use std::collections::HashMap;
 
 use koopa::ir;
 
-pub struct Symtab {
-    pub func: HashMap<String, ir::Function>,
-    pub scope: Vec<HashMap<String, ir::Value>>,
+pub type FuncTab = HashMap<String, ir::Function>;
+pub type ValTab = HashMap<String, ir::Value>;
+
+pub struct Symtab<'a> {
+    pub func: &'a FuncTab,
+    pub global: &'a ValTab,
+    pub scope: Vec<ValTab>,
 }
 
-impl Symtab {
-    pub fn new() -> Symtab {
+impl<'a> Symtab<'a> {
+    pub fn new(func: &'a FuncTab, global: &'a mut ValTab) -> Symtab<'a> {
         Symtab {
-            func: HashMap::new(),
+            func,
+            global,
             scope: vec![HashMap::new()],
         }
     }
@@ -40,6 +45,18 @@ impl Symtab {
                 return Some(*val);
             }
         }
+        if let Some(val) = self.global.get(name) {
+            return Some(*val);
+        }
         None
     }
+
+    pub fn get_func(&self, name: &str) -> Option<ir::Function> {
+        self.func.get(name).cloned()
+    }
+}
+
+pub trait FetchVal<'a> {
+    fn fetch_val(&self, name: &str) -> Option<ir::Value>;
+    fn fetch_val_kind(&self, val: ir::Value) -> ir::entities::ValueKind;
 }

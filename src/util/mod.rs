@@ -1,4 +1,4 @@
 #[macro_use]
 pub mod autonum;
 #[macro_use]
-pub mod some;
+pub mod ir_type;

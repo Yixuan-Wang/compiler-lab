@@ -5,34 +5,42 @@ pub mod util;
 
 use koopa::ir;
 
-trait WrapProgram {
+pub trait WrapProgram {
     fn program(&self) -> &ir::Program;
     fn program_mut(&mut self) -> &mut ir::Program;
-    fn func_handle(&self) -> ir::Function;
+    fn this_func_handle(&self) -> ir::Function;
 
-    fn func_mut(&mut self) -> &mut ir::FunctionData {
-        let func = self.func_handle();
+    fn func(&self, func: ir::Function) -> &ir::FunctionData {
+        self.program().func(func)
+    }
+
+    fn func_mut(&mut self, func: ir::Function) -> &mut ir::FunctionData {
         self.program_mut().func_mut(func)
     }
 
-    fn func(&self) -> &ir::FunctionData {
-        self.program().func(self.func_handle())
+    fn this_func(&self) -> &ir::FunctionData {
+        self.func(self.this_func_handle())
+    }
+
+    fn this_func_mut(&mut self) -> &mut ir::FunctionData {
+        let func = self.this_func_handle();
+        self.func_mut(func)
     }
 
     fn dfg_mut(&mut self) -> &mut ir::dfg::DataFlowGraph {
-        self.func_mut().dfg_mut()
+        self.this_func_mut().dfg_mut()
     }
 
     fn dfg(&self) -> &ir::dfg::DataFlowGraph {
-        self.func().dfg()
+        self.this_func().dfg()
     }
 
     fn layout_mut(&mut self) -> &mut ir::layout::Layout {
-        self.func_mut().layout_mut()
+        self.this_func_mut().layout_mut()
     }
 
     fn layout(&self) -> &ir::layout::Layout {
-        self.func().layout()
+        self.this_func().layout()
     }
 
     fn bb(&self, bb: ir::BasicBlock) -> &ir::entities::BasicBlockData {
@@ -51,7 +59,11 @@ trait WrapProgram {
         self.layout_mut().bb_mut(bb)
     }
 
-    fn value(&self, value: ir::Value) -> &ir::entities::ValueData {
-        self.dfg().value(value)
+    fn value(&self, value: ir::Value) -> ir::entities::ValueData {
+        if value.is_global() {
+            self.program().borrow_value(value).clone()
+        } else {
+            self.dfg().value(value).clone()
+        }
     }
 }

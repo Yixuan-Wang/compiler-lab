@@ -4,18 +4,18 @@ use koopa::ir::{self, builder_traits::*};
 
 use crate::{util::autonum::Autonum, WrapProgram};
 
-use super::{ast, symtab::Symtab};
+use super::symtab::{Symtab, FuncTab, ValTab, FetchVal};
 
 /// Context is a high-level [`koopa::ir::Program`] wrapper around a [`koopa::ir::Function`]
 /// with its symbol table [`Table`].
 pub struct Context<'a> {
     pub program: &'a mut ir::Program,
-    pub globals: &'a mut Symtab,
+    // pub globals: &'a mut Symtab,
     pub func: ir::Function,
-    table: Symtab,
+    table: Symtab<'a>,
     loop_stack: Vec<(ir::BasicBlock, ir::BasicBlock)>,
     pub variable_namer: Autonum,
-    pub inst_namer: Autonum,
+    pub block_namer: Autonum,
     sealed: HashSet<ir::BasicBlock>,
     entry: Option<ir::BasicBlock>,
     // end: Option<ir::BasicBlock>,
@@ -38,34 +38,42 @@ impl<'a> WrapProgram for Context<'a> {
     fn program_mut(&mut self) -> &mut ir::Program {
         self.program
     }
-    fn func_handle(&self) -> ir::Function {
+    fn this_func_handle(&self) -> ir::Function {
         self.func
+    }
+}
+
+impl<'a> FetchVal<'a> for Context<'a> {
+    fn fetch_val(&self, name: &str) -> Option<ir::Value> {
+        self.table().get_val(name)
+    }
+
+    fn fetch_val_kind(&self, val: ir::Value) -> ir::entities::ValueKind {
+        self.value(val).kind().clone()
     }
 }
 
 impl<'a: 'f, 'f> Context<'a> {
     pub fn new(
         program: &'a mut ir::Program,
-        globals: &'a mut Symtab,
-        func: &'f ast::Func,
+        func_tab: &'a mut FuncTab,
+        global_val_tab: &'a mut ValTab,
+        func: ir::Function,
     ) -> Context<'a> {
-        let mut this = Context::from(program, globals, func).unwrap();
+        let mut this = Context::from(program, func_tab, global_val_tab, func).unwrap();
         this.init();
         this
     }
 
     fn from(
         program: &'a mut ir::Program,
-        globals: &'a mut Symtab,
-        func: &'f ast::Func,
+        func_tab: &'a mut FuncTab,
+        global_val_tab: &'a mut ValTab,
+        func: ir::Function,
     ) -> Result<Self, Box<dyn Error>> {
         // let ty: ir::Type = (&func.output).into();
         // let ty_kind = ty.kind().clone();
         // let block = func.block;
-
-        let func_data =
-            ir::FunctionData::new(format!("@{}", func.ident), vec![], (&func.output).into());
-        let func = program.new_func(func_data);
 
         let dfg_handle = program.func_mut(func).dfg_mut();
         let zero = dfg_handle.new_value().integer(0);
@@ -73,7 +81,7 @@ impl<'a: 'f, 'f> Context<'a> {
 
         Ok(Context {
             program,
-            globals,
+            // globals,
             func,
             entry: None,
             // end: None,
@@ -81,10 +89,10 @@ impl<'a: 'f, 'f> Context<'a> {
             zero,
             one,
             sealed: HashSet::new(),
-            table: Symtab::new(),
+            table: Symtab::new(func_tab, global_val_tab),
             loop_stack: Vec::new(),
             variable_namer: Autonum::new(),
-            inst_namer: Autonum::new(),
+            block_namer: Autonum::new(),
         })
     }
 
@@ -97,7 +105,7 @@ impl<'a: 'f, 'f> Context<'a> {
         // self.insert_block(end);
         /* let ret_alloc = match self.kind() {
             Int32 => {
-                let val = self.add_value(val!(alloc(Type::get_i32())), Some("%ret"));
+                let val = self.add_value(val!(alloc(ty!(i32))), Some("%ret"));
                 self.insert_inst(val, entry);
                 self.table.Mod("%ret".to_string(), val);
                 Some(val)
@@ -161,7 +169,7 @@ impl<'a: 'f, 'f> Context<'a> {
         }
         val
     }
-
+    
     pub fn add_mid_value<F>(&mut self, builder_fn: F) -> ir::Value
     where
         F: FnOnce(ir::builder::LocalBuilder) -> ir::Value,
@@ -186,7 +194,7 @@ impl<'a: 'f, 'f> Context<'a> {
                 .push_key_back(val)
                 .unwrap();
         } else {
-            let ghost_block_name = self.inst_namer.gen("ghost");
+            let ghost_block_name = self.block_namer.gen("ghost");
             let ghost_block = self.add_block(&ghost_block_name);
             self.insert_block(ghost_block);
             self.set_curr(ghost_block);
@@ -236,7 +244,7 @@ impl<'a: 'f, 'f> Context<'a> {
     }
 
     /// Return the mutable variant of current symbol table
-    pub fn table_mut(&mut self) -> &mut Symtab {
+    pub fn table_mut(&mut self) -> &mut Symtab<'a> {
         &mut self.table
     }
 
@@ -250,5 +258,61 @@ impl<'a: 'f, 'f> Context<'a> {
 
     pub fn curr_loop(&mut self) -> (ir::BasicBlock, ir::BasicBlock) {
         *self.loop_stack.last().unwrap()
+    }
+}
+
+pub struct GlobalContext<'a> {
+    pub program: &'a mut ir::Program,
+    global: &'a mut ValTab,
+}
+
+impl<'a> WrapProgram for GlobalContext<'a> {
+    fn program(&self) -> &ir::Program {
+        self.program
+    }
+    fn program_mut(&mut self) -> &mut ir::Program {
+        self.program
+    }
+    fn this_func_handle(&self) -> ir::Function {
+        unimplemented!("Global context contains no function")
+    }
+}
+
+impl<'a> FetchVal<'a> for GlobalContext<'a> {
+    fn fetch_val(&self, name: &str) -> Option<ir::Value> {
+        dbg!(&self.global);
+        self.global.get(name).cloned()
+    }
+
+    fn fetch_val_kind(&self, val: ir::Value) -> ir::entities::ValueKind {
+        self.program.borrow_value(val).kind().clone()
+    }
+}
+
+impl<'a> GlobalContext<'a> {
+    pub fn new(
+        program: &'a mut ir::Program,
+        global_val_tab: &'a mut ValTab,
+    ) -> GlobalContext<'a> {
+        GlobalContext {
+            program,
+            global: global_val_tab,
+        }
+    }
+
+    pub fn add_global_value<F>(&mut self, builder_fn: F, name: Option<String>) -> ir::Value
+    where
+        F: FnOnce(ir::builder::GlobalBuilder) -> ir::Value,
+    {
+        let val = builder_fn(self.program_mut().new_value());
+        if name.is_some() {
+            self.program_mut().set_value_name(val, name);
+        }
+        val
+    }
+
+    pub fn register_global_value(&mut self, name: &str, value: ir::Value) {
+        self.global
+            .insert(name.to_string(), value);
     }
 }

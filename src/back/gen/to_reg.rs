@@ -3,11 +3,12 @@ use koopa::ir::Value;
 use crate::back::{
     risc::{
         RiscInst::{self as Inst, *},
-        RiscReg as Reg,
+        RiscReg as Reg, RiscLabel,
     },
     Context,
 };
 use crate::WrapProgram;
+use crate::frame;
 
 /// 将一个值存入寄存器，并生成所需的 RISC-V 指令
 pub trait ToReg<'a> {
@@ -23,17 +24,40 @@ impl<'a> ToReg<'a> for Value {
         let value_data = ctx.value(*self);
         let reg = match ideal {
             Some(reg) => reg,
-            None => ctx.allo_reg_mut().allo_reg_t(*self),
+            None => ctx.reg_map_mut().appoint_temp_reg(*self),
         };
         match value_data.kind() {
             Integer(i) => (reg, vec![Li(reg, i.value())]),
-            Binary(_) => {
-                let offset = *ctx.allo_stack().get(*self).unwrap();
+            Binary(_) | Call(_) => {
+                let offset = frame!(ctx).get(*self);
                 (reg, vec![Lw(reg, offset, Reg::Sp)])
             }
             Load(l) => {
-                let offset = *ctx.allo_stack().get(l.src()).unwrap();
-                (reg, vec![Lw(reg, offset, Reg::Sp)])
+                if !l.src().is_global() {
+                    let offset = frame!(ctx).get(l.src());
+                    (reg, vec![Lw(reg, offset, Reg::Sp)])
+                } else {
+                    let label = RiscLabel::strip(ctx.value(l.src()).name().clone().unwrap());
+                    (reg, vec![La(reg, label), Lw(reg, 0, reg)])
+                }
+            }
+            FuncArgRef(a) => {
+                let i = a.index();
+                if i >= 8 {
+                    (
+                        reg,
+                        vec![
+                            Inst::Lw(reg, frame!(ctx).get(*self), Reg::Sp),
+                        ]
+                    )
+                } else {
+                    (
+                        reg,
+                        vec![
+                            Inst::Mv(reg, Reg::A(i.try_into().unwrap())),
+                        ]
+                    )
+                }
             }
             _ => todo!(),
         }

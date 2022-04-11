@@ -9,7 +9,7 @@ pub struct Item {
 #[derive(Debug)]
 pub enum ItemKind {
     /// Global const/variable declaration
-    Global(),
+    Global(Vec<Decl>),
 
     /// Function declaration
     Func(Func),
@@ -19,14 +19,16 @@ pub enum ItemKind {
 pub struct Func {
     pub ident: String,
     pub output: Ty,
+    pub params: Vec<Param>,
     pub block: Block,
 }
 
 impl Func {
-    pub fn new(ident: String, output: String, block: Block) -> Func {
+    pub fn new(ident: String, output: Ty, params: Vec<Param>, block: Block) -> Func {
         Func {
             ident,
-            output: Ty::new(&output),
+            output,
+            params,
             block,
         }
     }
@@ -51,10 +53,16 @@ impl Ty {
 impl From<&Ty> for ir::Type {
     fn from(t: &Ty) -> Self {
         match t {
-            Ty::Int => ir::Type::get_i32(),
-            Ty::Void => ir::Type::get_unit(),
+            Ty::Int => ty!(i32),
+            Ty::Void => ty!(()),
         }
     }
+}
+
+#[derive(Debug)]
+pub enum BlockItem {
+    Stmt(Stmt),
+    Decl(Vec<Decl>),
 }
 
 #[derive(Debug)]
@@ -80,7 +88,6 @@ pub enum StmtKind {
     Unit,
     Exp(Exp),
     Block(Block),
-    Decl(Vec<Decl>),
     Assign(LVal, Exp),
     If(Exp, Box<Stmt>, Option<Box<Stmt>>),
     While(Exp, Box<Stmt>),
@@ -100,7 +107,7 @@ pub enum SymKind {
 }
 
 #[derive(Debug)]
-pub struct Block(pub Vec<Stmt>);
+pub struct Block(pub Vec<BlockItem>);
 
 #[derive(Debug)]
 pub struct Decl {
@@ -113,5 +120,13 @@ pub struct Decl {
 #[derive(Debug)]
 pub struct LVal(pub String);
 
+#[derive(Debug)]
+pub struct Param {
+    pub ident: String,
+    pub ty: Ty,
+}
+
 pub use exp::*;
+
+use crate::ty;
 mod exp;

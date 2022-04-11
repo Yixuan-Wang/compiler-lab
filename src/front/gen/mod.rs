@@ -1,12 +1,16 @@
 // #[macro_use] use super::context;
 // use crate::auton;
-use crate::WrapProgram;
+use crate::{WrapProgram, ty};
 
-use super::ast;
-use super::context::Context;
+use crate::front::{
+    ast,
+    context::Context,
+};
 use koopa::ir::{self, builder_traits::*};
 
-mod eval;
+pub mod eval;
+
+pub mod prelude;
 
 pub mod lazy;
 pub use lazy::*;
@@ -20,8 +24,18 @@ pub trait Generate<'f> {
 impl<'f> Generate<'f> for ast::Block {
     type Val = ();
     fn generate(&self, ctx: &'f mut Context) -> Self::Val {
-        for stmt in &self.0 {
-            stmt.generate(ctx);
+        for item in &self.0 {
+            item.generate(ctx);
+        }
+    }
+}
+
+impl<'f> Generate<'f> for ast::BlockItem {
+    type Val = ();
+    fn generate(&self, ctx: &'f mut Context) -> Self::Val {
+        match self {
+            Self::Stmt(s) => s.generate(ctx),
+            Self::Decl(v) => v.iter().for_each(|d| d.generate(ctx))
         }
     }
 }
@@ -40,7 +54,6 @@ impl<'f> Generate<'f> for ast::StmtKind {
                 b.generate(ctx);
                 ctx.table_mut().pop_scope();
             }
-            Decl(v) => v.iter().for_each(|d| d.generate(ctx)),
             Assign(l, e) => {
                 let lval_handle = ctx.table().get_val(&l.0).unwrap_or_else(|| {
                     panic!(
@@ -59,9 +72,9 @@ impl<'f> Generate<'f> for ast::StmtKind {
                 ctx.insert_inst(store, ctx.curr());
             }
             If(exp, then, alt) => {
-                let block_name_then = ctx.inst_namer.gen("then");
-                let block_name_else = ctx.inst_namer.gen("else");
-                let block_name_endif = ctx.inst_namer.gen("endif");
+                let block_name_then = ctx.block_namer.gen("then");
+                let block_name_else = ctx.block_namer.gen("else");
+                let block_name_endif = ctx.block_namer.gen("endif");
 
                 let block_then = ctx.add_block(&block_name_then);
                 let block_endif = ctx.add_block(&block_name_endif);
@@ -100,9 +113,9 @@ impl<'f> Generate<'f> for ast::StmtKind {
                 ctx.set_curr(block_endif);
             }
             While(exp, body) => {
-                let block_name_while = ctx.inst_namer.gen("while");
-                let block_name_loop = ctx.inst_namer.gen("loop");
-                let block_name_endwhile = ctx.inst_namer.gen("endwhile");
+                let block_name_while = ctx.block_namer.gen("while");
+                let block_name_loop = ctx.block_namer.gen("loop");
+                let block_name_endwhile = ctx.block_namer.gen("endwhile");
 
                 let block_while = ctx.add_block(&block_name_while);
                 let block_loop = ctx.add_block(&block_name_loop);
@@ -154,7 +167,9 @@ impl<'f> Generate<'f> for ast::StmtKind {
                         let ret_val = r.generate(ctx);
                         ctx.add_value(val!(ret(Some(ret_val))), None)
                     }
-                    None => ctx.add_value(val!(ret(None)), None),
+                    None => {
+                        ctx.add_value(val!(ret(None)), None)
+                    }
                 };
                 ctx.insert_inst(ret, ctx.curr());
                 ctx.seal_block(ctx.curr());
@@ -180,10 +195,10 @@ impl<'f> Generate<'f> for ast::Decl {
                         Some(v) => ctx.add_value(val!(integer(v)), None),
                         None => e.generate(ctx),
                     },
-                    None => ctx.add_value(val!(undef(ir::Type::get_i32())), None),
+                    None => ctx.add_value(val!(undef(ty!(i32))), None),
                 };
                 let alloc = ctx.add_value(
-                    val!(alloc(ir::Type::get_i32())),
+                    val!(alloc(ty!(i32))),
                     Some(format!("@{}", &self.ident)),
                 );
                 ctx.table_mut().insert_val(&self.ident, alloc);
@@ -192,6 +207,20 @@ impl<'f> Generate<'f> for ast::Decl {
                 ctx.insert_inst(store, ctx.curr());
             }
         };
+    }
+}
+
+impl<'f> Generate<'f> for (&ast::Param, ir::Value) {
+    type Val = ();
+    fn generate(&self, ctx: &'f mut Context) -> Self::Val {
+        let alloc = ctx.add_value(
+            val!(alloc(ty!(i32))),
+            Some(format!("@{}", &self.0.ident)),
+        );
+        ctx.table_mut().insert_val(&self.0.ident, alloc);
+        ctx.insert_inst(alloc, ctx.curr());
+        let store = ctx.add_value(val!(store(self.1, alloc)), None);
+        ctx.insert_inst(store, ctx.curr());
     }
 }
 
@@ -248,7 +277,27 @@ impl<'f> Generate<'f> for ast::UnaryExp {
                 };
                 ctx.insert_inst(inst, ctx.curr());
                 inst
-            }
+            },
+            Self::Call(ident, params) => {
+                let func = ctx.table().get_func(ident).unwrap_or_else(|| {
+                    panic!(
+                        "SemanticsError[UndefinedFunc]: '{}' is called before definition.",
+                        ident
+                    )
+                });
+                let ret_unit = match ctx.func(func).ty().kind() {
+                    ir::TypeKind::Function(_, ret_ty) => ret_ty.is_unit(),
+                    _ => unreachable!(),
+                };
+                let param_values: Vec<_> = params.iter().map(|p| p.generate(ctx)).collect();
+                let call = if ret_unit {
+                    ctx.add_value(val!(call(func, param_values)), None)
+                } else {
+                    ctx.add_mid_value(val!(call(func, param_values)))
+                };
+                ctx.insert_inst(call, ctx.curr());
+                call
+            },
         }
     }
 }

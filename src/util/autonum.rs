@@ -23,7 +23,7 @@ pub struct Autonum {
 
 impl Autonum {
     pub fn new() -> Autonum {
-        Autonum { h: HashMap::new(), temp: Autocount::new(None) }
+        Autonum { h: HashMap::new(), temp: Autocount::new(0, None) }
     }
 
     pub fn gen(&mut self, name: &str) -> String {
@@ -31,7 +31,7 @@ impl Autonum {
         match self.h.get_mut(&s) {
             Some(c) => format!("{name}_{}", c.gen().unwrap()),
             None => {
-                let mut c = Autocount::new(None);
+                let mut c = Autocount::new(0, None);
                 c.gen().unwrap();
                 self.h.insert(s, c);
                 format!("{name}_0")
@@ -51,16 +51,21 @@ impl Default for Autonum {
 }
 
 pub struct Autocount {
-    count: usize,
-    lim: Option<usize>,
+    count: i32,
+    start: i32,
+    lim: Option<i32>,
 }
 
 impl Autocount {
-    pub fn new(lim: Option<usize>) -> Autocount {
-        Autocount { count: 0, lim }
+    pub fn new(start: i32, lim: Option<i32>) -> Autocount {
+        Autocount { 
+            count: start,
+            start,
+            lim
+        }
     }
 
-    pub fn gen(&mut self) -> Result<usize, &'static str> {
+    pub fn gen(&mut self) -> Result<i32, &'static str> {
         if let Some(up) = self.lim {
             if up == self.count {
                 return Err("Autocount overflow!");
@@ -72,6 +77,6 @@ impl Autocount {
     }
 
     pub fn reset(&mut self) {
-        self.count = 0;
+        self.count = self.start;
     }
 }

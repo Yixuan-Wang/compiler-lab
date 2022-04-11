@@ -3,6 +3,8 @@ use super::risc;
 use koopa::ir;
 
 use crate::WrapProgram;
+use crate::back::risc::RiscLabel;
+use crate::frame;
 
 mod to_reg;
 use to_reg::ToReg;
@@ -30,8 +32,9 @@ impl<'a> Generate<'a> for ir::entities::Value {
                     let (_, inst) = val.to_reg(ctx, Some(Reg::A(0)));
                     v.extend(inst);
                 }
-                v.extend(ctx.epilogue());
-                v.push(Inst::Ret);
+                v.push(Inst::J(RiscLabel::new("end").with_prefix(ctx.name())));
+                // v.extend(ctx.epilogue());
+                // v.push(Inst::Ret);
                 v
             }
             Binary(bin) => {
@@ -39,7 +42,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 let mut v: Vec<Inst> = vec![];
                 if !ctx.on_reg(*self) {
                     let (l, r) = (bin.lhs(), bin.rhs());
-                    let dreg = ctx.allo_reg_mut().allo_reg_t(*self);
+                    let dreg = ctx.reg_map_mut().appoint_temp_reg(*self);
                     let (lreg, linst) = l.to_reg(ctx, None);
                     let (rreg, rinst) = r.to_reg(ctx, None);
                     v.extend(linst);
@@ -54,7 +57,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                     //         v.push(Inst::Lw(reg, *ctx.allo_stack().get(val).unwrap(), Reg::Sp))
                     //     }
                     // }
-                    let offset = *ctx.allo_stack().get(*self).unwrap();
+                    let offset = frame!(ctx).get(*self);
                     match bin.op() {
                         Eq => v.extend([Inst::Xor(dreg, lreg, rreg), Inst::Seqz(dreg, dreg)]),
                         NotEq => v.extend([Inst::Xor(dreg, lreg, rreg), Inst::Snez(dreg, dreg)]),
@@ -88,6 +91,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 } else { vec![] }
             }, */
             Alloc(_) => vec![],
+            GlobalAlloc(_) => vec![],
             Load(_) => vec![],
             Store(s) => {
                 let mut v = vec![];
@@ -96,13 +100,13 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 }
                 let (reg, inst) = s.value().to_reg(ctx, None);
                 v.extend(inst);
-                let offset = *ctx.allo_stack().get(s.dest()).unwrap_or_else(|| {
-                    panic!(
-                        "BackendError: {} not found",
-                        ctx.value(s.dest()).name().clone().unwrap()
-                    )
-                });
-                v.push(Inst::Sw(reg, offset, Reg::Sp));
+                if !s.dest().is_global() {
+                    let offset = frame!(ctx).get(s.dest());
+                    v.push(Inst::Sw(reg, offset, Reg::Sp));
+                } else {
+                    let label = RiscLabel::strip(ctx.value(s.dest()).name().clone().unwrap());
+                    v.extend([Inst::La(Reg::T(0), label), Inst::Sw(reg, 0, Reg::T(0))]);
+                }
                 v
             }
             Undef(_) => vec![],
@@ -116,16 +120,35 @@ impl<'a> Generate<'a> for ir::entities::Value {
                     ctx.bb(b.false_bb()).name().clone().unwrap(),
                 );
                 v.extend([
-                    Inst::Bnez(gate, ctx.prefix_with_name(&true_block_name)),
-                    Inst::J(ctx.prefix_with_name(&false_block_name)),
+                    Inst::Bnez(gate, ctx.label(&true_block_name)),
+                    Inst::J(ctx.label(&false_block_name)),
                 ]);
                 v
             }
             Jump(j) => {
                 let target = j.target();
                 let target_block_name = ctx.bb(target).name().clone().unwrap();
-                vec![Inst::J(ctx.prefix_with_name(&target_block_name))]
+                vec![Inst::J(ctx.label(&target_block_name))]
             }
+            Call(c) => {
+                use crate::back::memory::stack::FrameObj::Slot;
+                let mut v = vec![];
+                c.args().iter().enumerate().for_each(|(i, val)| {
+                    let (reg, insts) = val.to_reg(ctx, None);
+                    v.extend(insts);
+                    if i >= 8 {
+                        v.push(Inst::Sw(reg, frame!(ctx).get(Slot(i.try_into().unwrap())), Reg::Sp))
+                    } else {
+                        v.push(Inst::Mv(Reg::A(i.try_into().unwrap()), reg))
+                    };
+                });
+                v.push(Inst::Call(RiscLabel::strip(ctx.func(c.callee()).name())));
+                if !ctx.value(*self).ty().is_unit() {
+                    v.push(Inst::Sw(Reg::A(0), frame!(ctx).get(*self), Reg::Sp))
+                }
+                v
+            }
+            FuncArgRef(_) => vec![],
             _ => todo!("{:#?}", value_data.kind()),
         }
     }

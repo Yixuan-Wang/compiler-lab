@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::reg::RiscReg as Reg;
+use super::{reg::RiscReg as Reg, RiscLabel};
 
 #[allow(dead_code)]
 /// RISC-V 指令
@@ -40,17 +40,21 @@ pub enum RiscInst {
     /// 非零 `snez rd, rs`
     Snez(Reg, Reg),
     /// 判零转移 `beqz rs, label`
-    Beqz(Reg, String),
+    Beqz(Reg, RiscLabel),
     /// 非零转移 `bnez rs, label`
-    Bnez(Reg, String),
+    Bnez(Reg, RiscLabel),
     /// 无条件转移 `j label`
-    J(String),
+    J(RiscLabel),
     /// 返回 `ret`
     Ret,
+    /// 调用函数 `call label`
+    Call(RiscLabel),
     /// 加载立即数 `li rd, imm`
     Li(Reg, i32),
     /// 寄存器复制 `mv rd, rs`
     Mv(Reg, Reg),
+    /// 标签地址 data `la rd, label`
+    La(Reg, RiscLabel),
     /// 取 `lw rs, imm12(rd)`（取 `rd+imm12` 存入 `rs`）
     Lw(Reg, i32, Reg),
     /// 存 `sw rs2, imm12(rs1)`（存 `rs2` 入 `rs1+imm2`）
@@ -83,9 +87,11 @@ impl Display for RiscInst {
             Beqz(rs, label) => write!(f, "beqz {rs}, {label}"),
             Bnez(rs, label) => write!(f, "bnez {rs}, {label}"),
             Ret => write!(f, "ret"),
+            Call(label) => write!(f, "call {label}"),
             J(label) => write!(f, "j {label}"),
             Li(r, i) => write!(f, "li {r}, {i}"),
             Mv(rd, rs) => write!(f, "mv {rd}, {rs}"),
+            La(rd, l) => write!(f, "la {rd}, {l}"),
             Lw(rs, of, rd) => write!(f, "lw {rs}, {of}({rd})"),
             Sw(rs2, of, rs1) => write!(f, "sw {rs2}, {of}({rs1})"),
 

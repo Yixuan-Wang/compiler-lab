@@ -1,3 +1,5 @@
+use crate::ty;
+
 use super::*;
 
 /*
@@ -19,15 +21,15 @@ impl<'f> Generate<'f> for ast::LAndExp {
             Self::Unary(p) => p.generate(ctx),
             Self::Binary(l, r) => {
                 let res_name = ctx.variable_namer.gen("%lazy_land");
-                let res = ctx.add_value(val!(alloc(ir::Type::get_i32())), Some(res_name));
+                let res = ctx.add_value(val!(alloc(ty!(i32))), Some(res_name));
                 ctx.insert_inst(res, ctx.curr());
 
                 let zero = ctx.zero;
                 let init_res = ctx.add_value(val!(store(zero, res)), None);
                 ctx.insert_inst(init_res, ctx.curr());
 
-                let block_right_name = ctx.inst_namer.gen("lazy_land_right");
-                let block_skip_name = ctx.inst_namer.gen("lazy_land_skip");
+                let block_right_name = ctx.block_namer.gen("lazy_land_right");
+                let block_skip_name = ctx.block_namer.gen("lazy_land_skip");
 
                 let block_right = ctx.add_block(&block_right_name);
                 let block_skip = ctx.add_block(&block_skip_name);
@@ -72,7 +74,7 @@ impl<'f> Generate<'f> for ast::LOrExp {
             Self::Unary(p) => p.generate(ctx),
             Self::Binary(l, r) => {
                 let res_name = ctx.variable_namer.gen("%lazy_lor");
-                let res = ctx.add_value(val!(alloc(ir::Type::get_i32())), Some(res_name));
+                let res = ctx.add_value(val!(alloc(ty!(i32))), Some(res_name));
                 ctx.insert_inst(res, ctx.curr());
 
                 let one = ctx.one;
@@ -81,8 +83,8 @@ impl<'f> Generate<'f> for ast::LOrExp {
                 let init_res = ctx.add_value(val!(store(one, res)), None);
                 ctx.insert_inst(init_res, ctx.curr());
 
-                let block_right_name = ctx.inst_namer.gen("lazy_lor_right");
-                let block_skip_name = ctx.inst_namer.gen("lazy_lor_skip");
+                let block_right_name = ctx.block_namer.gen("lazy_lor_right");
+                let block_skip_name = ctx.block_namer.gen("lazy_lor_skip");
 
                 let block_right = ctx.add_block(&block_right_name);
                 let block_skip = ctx.add_block(&block_skip_name);

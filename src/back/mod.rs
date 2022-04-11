@@ -1,16 +1,15 @@
-use std::error::Error;
+use std::{error::Error, cell::RefCell};
 
 use crate::{front::Ir, WrapProgram};
 
-mod allo;
+mod allocate;
 mod context;
 mod gen;
+mod memory;
 mod risc;
 
 use context::Context;
-use risc::RiscItem as Item;
-
-use self::gen::Generate;
+use self::{gen::Generate, memory::stack::StackMap, risc::{RiscItem as Item, RiscLabel, RiscDirc as Dirc}};
 
 pub struct Target(pub String);
 
@@ -23,17 +22,51 @@ impl TryFrom<Ir> for Target {
     type Error = Box<dyn Error>;
     fn try_from(ir: Ir) -> Result<Self, Self::Error> {
         let mut program = ir.0;
-        let funcs = program.func_layout().to_vec();
-        let mut text = vec![Item::Text, Item::Global("main".to_string())];
+        let mut stack = RefCell::new(StackMap::new());
+        let mut code = vec![];
+        
+        let data = program.borrow_values();
+        code.extend(data.iter().flat_map(|(_, d)| {
+            use koopa::ir::ValueKind::*;
+            if let GlobalAlloc(a) = d.kind() {
+                let label = RiscLabel::strip(d.name().clone().unwrap());
+                let mut v = vec![
+                    Item::Dirc(Dirc::Data),
+                    Item::Dirc(Dirc::Global(label.clone())),
+                    Item::Label(label),
+                ];
+                v.push(
+                match program.borrow_value(a.init()).kind() {
+                    Integer(i) => Item::Dirc(Dirc::Word(i.value())),
+                    Undef(_) | ZeroInit(_) => Item::Dirc(Dirc::Zero(4)),
+                    _ => unreachable!()
+                });
+                v.push(Item::Blank);
+                v
+            } else {
+                vec![]
+            }
+        }));
+        drop(data);
 
-        text.extend(funcs.into_iter().flat_map(|func| {
-            let ctx = Context::new(&mut program, func);
-            let mut insts = vec![Item::Label(ctx.name().to_string())];
+        let funcs = program.func_layout().to_vec();
+        code.extend(funcs.into_iter().flat_map(|func| {
+            if program.func(func).layout().entry_bb().is_none() {
+                return vec![]
+            }
+
+            let ctx = Context::new(&mut program, &mut stack, func);
+            let mut insts = vec![
+                Item::Dirc(Dirc::Text),
+                Item::Dirc(Dirc::Global(RiscLabel::new(ctx.name()))),
+                Item::Label(RiscLabel::new(ctx.name())),
+            ];
+            ctx.stack_mut().new_frame(func);
             insts.extend(ctx.prologue().into_iter().map(Item::Inst));
-            for (bb, node) in ctx.func().layout().bbs() {
+            for (bb, node) in ctx.this_func().layout().bbs() {
                 let name = ctx.bb(*bb).name().clone().unwrap();
                 if name != "%entry" {
-                    insts.push(Item::Label(ctx.prefix_with_name(&name)));
+                    insts.push(Item::Label(ctx.label(&name)));
                 }
                 insts.extend(
                     node.insts()
@@ -42,15 +75,16 @@ impl TryFrom<Ir> for Target {
                         .map(Item::Inst),
                 );
             }
+            insts.push(Item::Label(RiscLabel::new("end").with_prefix(ctx.name())));
+            insts.extend(ctx.epilogue().into_iter().map(Item::Inst));
             insts.push(Item::Blank);
             insts
         }));
 
         Ok(Target(
-            text.iter()
-                .map(|i| format!("{i}"))
-                .collect::<Vec<_>>()
-                .join("\n"),
+            code.iter()
+                .map(|i| i.to_string())
+                .collect::<String>()
         ))
     }
 }
