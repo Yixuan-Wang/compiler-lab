@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use crate::back::risc::MAX_IMM;
+
 use super::{reg::RiscReg as Reg, RiscLabel};
 
 #[allow(dead_code)]
@@ -96,6 +98,35 @@ impl Display for RiscInst {
             Sw(rs2, of, rs1) => write!(f, "sw {rs2}, {of}({rs1})"),
 
             Com(c) => write!(f, "# {c}"),
+        }
+    }
+}
+
+impl RiscInst {
+    pub fn expand_imm(self) -> Vec<RiscInst> {
+        use RiscInst::*;
+        match self {
+            Lw(rs, of, rd) => {
+                if of > MAX_IMM {
+                    vec![
+                        Li(Reg::T(0), of),
+                        Add(rd, rd, Reg::T(0)),
+                        Lw(rs, 0, rd),
+                        Sub(rd, rd, Reg::T(0)),
+                    ]
+                } else { vec![self] }
+            }
+            Sw(rs2, of, rs1) => {
+                if of > MAX_IMM {
+                    vec![
+                        Li(Reg::T(0), of),
+                        Add(rs1, rs1, Reg::T(0)),
+                        Lw(rs2, 0, rs1),
+                        Sub(rs1, rs1, Reg::T(0)),
+                    ]
+                } else { vec![self] }
+            }
+            _ => unimplemented!()
         }
     }
 }

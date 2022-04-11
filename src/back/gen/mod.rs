@@ -75,7 +75,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                         Mod => v.push(Inst::Rem(dreg, lreg, rreg)),
                         _ => todo!(),
                     };
-                    v.push(Inst::Sw(dreg, offset, Reg::Sp))
+                    v.extend(Inst::Sw(dreg, offset, Reg::Sp).expand_imm())
                 }
                 v
             }
@@ -102,10 +102,11 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 v.extend(inst);
                 if !s.dest().is_global() {
                     let offset = frame!(ctx).get(s.dest());
-                    v.push(Inst::Sw(reg, offset, Reg::Sp));
+                    v.extend(Inst::Sw(reg, offset, Reg::Sp).expand_imm());
                 } else {
                     let label = RiscLabel::strip(ctx.value(s.dest()).name().clone().unwrap());
-                    v.extend([Inst::La(Reg::T(0), label), Inst::Sw(reg, 0, Reg::T(0))]);
+                    let temp_reg = ctx.reg_map_mut().appoint_temp_reg(s.dest());
+                    v.extend([Inst::La(temp_reg, label), Inst::Sw(reg, 0, temp_reg)]);
                 }
                 v
             }
@@ -137,14 +138,14 @@ impl<'a> Generate<'a> for ir::entities::Value {
                     let (reg, insts) = val.to_reg(ctx, None);
                     v.extend(insts);
                     if i >= 8 {
-                        v.push(Inst::Sw(reg, frame!(ctx).get(Slot(i.try_into().unwrap())), Reg::Sp))
+                        v.extend(Inst::Sw(reg, frame!(ctx).get(Slot(i.try_into().unwrap())), Reg::Sp).expand_imm())
                     } else {
                         v.push(Inst::Mv(Reg::A(i.try_into().unwrap()), reg))
                     };
                 });
                 v.push(Inst::Call(RiscLabel::strip(ctx.func(c.callee()).name())));
                 if !ctx.value(*self).ty().is_unit() {
-                    v.push(Inst::Sw(Reg::A(0), frame!(ctx).get(*self), Reg::Sp))
+                    v.extend(Inst::Sw(Reg::A(0), frame!(ctx).get(*self), Reg::Sp).expand_imm())
                 }
                 v
             }

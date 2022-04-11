@@ -193,7 +193,7 @@ impl<'a> Context<'a> {
         // 复原返回地址
         if !self.is_leaf.borrow().unwrap() {
             let ra = Reg::Ra;
-            v.push(Lw(ra, frame!(self).get(ra), Reg::Sp));
+            v.extend(Lw(ra, frame!(self).get(ra), Reg::Sp).expand_imm());
         }
 
         // 移动栈指针

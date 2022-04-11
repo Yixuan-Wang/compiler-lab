@@ -30,12 +30,12 @@ impl<'a> ToReg<'a> for Value {
             Integer(i) => (reg, vec![Li(reg, i.value())]),
             Binary(_) | Call(_) => {
                 let offset = frame!(ctx).get(*self);
-                (reg, vec![Lw(reg, offset, Reg::Sp)])
+                (reg, Lw(reg, offset, Reg::Sp).expand_imm())
             }
             Load(l) => {
                 if !l.src().is_global() {
                     let offset = frame!(ctx).get(l.src());
-                    (reg, vec![Lw(reg, offset, Reg::Sp)])
+                    (reg, Lw(reg, offset, Reg::Sp).expand_imm())
                 } else {
                     let label = RiscLabel::strip(ctx.value(l.src()).name().clone().unwrap());
                     (reg, vec![La(reg, label), Lw(reg, 0, reg)])
@@ -46,9 +46,7 @@ impl<'a> ToReg<'a> for Value {
                 if i >= 8 {
                     (
                         reg,
-                        vec![
-                            Inst::Lw(reg, frame!(ctx).get(*self), Reg::Sp),
-                        ]
+                        Inst::Lw(reg, frame!(ctx).get(*self), Reg::Sp).expand_imm(),
                     )
                 } else {
                     (
