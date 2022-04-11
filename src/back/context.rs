@@ -155,7 +155,7 @@ impl<'a> Context<'a> {
         // 分配局部变量
         ir_insts.iter().for_each(|h| {
             let d = self.value(*h);
-            frame!(self._mut).insert_high(*h, d);
+            frame!(self._mut).insert_high(*h, &d);
         });
 
         // 分配额外的用于本函数调用**其他函数**传参所需的空间

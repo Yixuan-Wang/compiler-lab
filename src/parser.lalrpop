@@ -18,30 +18,62 @@ Comma<T>: Vec<T> = {
     }
 };
 
-CommaOrEmpty<T>: Vec<T> = {
-    <mut v:(<T> ",")*> <e:T?> => {
-        if let Some(t) = e {
-            v.push(t);
-        }
-        v
-    }
-};
-
 pub CompUnit: Vec<Item> = <Item*>;
 
 Item: Item = {
-    <f: Func> => Item { kind: ItemKind::Func(f) }
+    <Decl> => Item { kind: ItemKind::Global(<>) },
+    <Func> => Item { kind: ItemKind::Func(<>) },
 }
 
 Func: Func = {
-    <t:FUNC_TYPE> <i:IDENT> "(" <p: CommaOrEmpty<Param>> ")" <b:Block> => {
-        Func::new(i, t.to_string(), p, b)
-    }
+    <i:FuncHead> <p: Comma<Param>> ")" <b:Block> => {
+        Func::new(i.1, i.0, p, b)
+    },
+    <i:FuncHead> ")" <b:Block> => {
+        Func::new(i.1, i.0, vec![], b)
+    },
 }
 
-Param: Param = <ty:VAL_TYPE> <ident:IDENT> => Param { ty: Ty::new(&ty), ident };
+FuncHead: (Ty, String) = {
+    "int" <IDENT> "(" => (Ty::Int, <>),
+    "void" <IDENT> "(" => (Ty::Void, <>),
+}
 
-Block: Block = "{" <Stmt*> "}" => Block(<>);
+Param: Param = "int" <ident:IDENT> => Param { ty: Ty::Int, ident };
+
+Decl: Vec<Decl> = {
+    "const" "int" <v: Comma<ConstDef>> ";" => {
+        v.into_iter().map(|(ident, constexp)| {
+            Decl {
+                ident,
+                exp: Some(constexp),
+                ty: Ty::Int,
+                kind: SymKind::Const,
+            }
+        }).collect()
+    },
+    "int" <v: Comma<VarDef>> ";" => {
+        v.into_iter().map(|(ident, exp)| {
+            Decl {
+                ident,
+                exp,
+                ty: Ty::Int,
+                kind: SymKind::Var,
+            }
+        }).collect()
+    },
+}
+
+ConstDef: (String, Exp) = <IDENT> "=" <ConstExp>;
+
+VarDef: (String, Option<Exp>) = <IDENT> <("=" <VarExp>)?>;
+
+Block: Block = "{" <BlockItem*> "}" => Block(<>);
+
+BlockItem: BlockItem = {
+    <Stmt> => BlockItem::Stmt(<>),
+    <Decl> => BlockItem::Decl(<>),
+}
 
 Stmt: Stmt = {
     OpenStmt,
@@ -64,7 +96,6 @@ NonIfStmt: Stmt = {
     UnitStmt,
     ExpStmt,
     BlockStmt,
-    DeclStmt,
     AssignStmt,
     BreakStmt,
     ContinueStmt,
@@ -76,8 +107,6 @@ UnitStmt: Stmt = ";" => Stmt { kind: StmtKind::Unit };
 ExpStmt: Stmt = <Exp> ";" => Stmt { kind: StmtKind::Exp(<>) };
 
 BlockStmt: Stmt = <Block> => Stmt { kind: StmtKind::Block(<>) };
-
-DeclStmt: Stmt = Decl => Stmt { kind: StmtKind::Decl(<>) };
 
 AssignStmt: Stmt = <LVal> "=" <Exp> ";" => Stmt { kind: StmtKind::Assign(<>) };
 
@@ -99,33 +128,6 @@ ReturnStmt: Stmt = {
     "return" <r:Exp> ";" => Stmt { kind: StmtKind::Return(Some(r)) },
     "return" ";" => Stmt { kind: StmtKind::Return(None)},
 }
-
-Decl: Vec<Decl> = {
-    "const" <ty: VAL_TYPE> <v: Comma<ConstDef>> ";" => {
-        v.into_iter().map(|(ident, constexp)| {
-            Decl {
-                ident,
-                exp: Some(constexp),
-                ty: Ty::new(&ty),
-                kind: SymKind::Const,
-            }
-        }).collect()
-    },
-    <ty: VAL_TYPE> <v: Comma<VarDef>> ";" => {
-        v.into_iter().map(|(ident, exp)| {
-            Decl {
-                ident,
-                exp,
-                ty: Ty::new(&ty),
-                kind: SymKind::Var,
-            }
-        }).collect()
-    },
-}
-
-ConstDef: (String, Exp) = <IDENT> "=" <ConstExp>;
-
-VarDef: (String, Option<Exp>) = <IDENT> <("=" <VarExp>)?>;
 
 LVal: LVal = IDENT => LVal(<>);
 
@@ -151,7 +153,8 @@ UnaryExp: UnaryExp = {
     PrimaryExp => UnaryExp::Primary(<>),
     <o:UnaryOp> <e:UnaryExp> => UnaryExp::Unary(o, Box::new(e)),
     "+" <UnaryExp>,
-    <i:IDENT> "(" <p:CommaOrEmpty<Exp>> ")" => UnaryExp::Call(i, p.into_iter().map(Box::new).collect()),
+    <i:IDENT> "(" <p:Comma<Exp>> ")" => UnaryExp::Call(i, p.into_iter().map(Box::new).collect()),
+    <i:IDENT> "(" ")" => UnaryExp::Call(i, vec![]),
 }
 
 UnaryOp: UnaryOp = {
@@ -218,5 +221,3 @@ FUNC_TYPE: &'input str = {
     "int",
     "void",
 }
-
-VAL_TYPE: String = "int" => <>.to_string();

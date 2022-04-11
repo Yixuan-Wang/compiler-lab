@@ -2,11 +2,13 @@
 // use crate::auton;
 use crate::{WrapProgram, ty};
 
-use super::ast;
-use super::context::Context;
+use crate::front::{
+    ast,
+    context::Context,
+};
 use koopa::ir::{self, builder_traits::*};
 
-mod eval;
+pub mod eval;
 
 pub mod prelude;
 
@@ -22,8 +24,18 @@ pub trait Generate<'f> {
 impl<'f> Generate<'f> for ast::Block {
     type Val = ();
     fn generate(&self, ctx: &'f mut Context) -> Self::Val {
-        for stmt in &self.0 {
-            stmt.generate(ctx);
+        for item in &self.0 {
+            item.generate(ctx);
+        }
+    }
+}
+
+impl<'f> Generate<'f> for ast::BlockItem {
+    type Val = ();
+    fn generate(&self, ctx: &'f mut Context) -> Self::Val {
+        match self {
+            Self::Stmt(s) => s.generate(ctx),
+            Self::Decl(v) => v.iter().for_each(|d| d.generate(ctx))
         }
     }
 }
@@ -42,7 +54,6 @@ impl<'f> Generate<'f> for ast::StmtKind {
                 b.generate(ctx);
                 ctx.table_mut().pop_scope();
             }
-            Decl(v) => v.iter().for_each(|d| d.generate(ctx)),
             Assign(l, e) => {
                 let lval_handle = ctx.table().get_val(&l.0).unwrap_or_else(|| {
                     panic!(

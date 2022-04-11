@@ -12,7 +12,7 @@ pub struct Symtab<'a> {
 }
 
 impl<'a> Symtab<'a> {
-    pub fn new(func: &'a FuncTab, global: &'a ValTab) -> Symtab<'a> {
+    pub fn new(func: &'a FuncTab, global: &'a mut ValTab) -> Symtab<'a> {
         Symtab {
             func,
             global,
@@ -45,10 +45,18 @@ impl<'a> Symtab<'a> {
                 return Some(*val);
             }
         }
+        if let Some(val) = self.global.get(name) {
+            return Some(*val);
+        }
         None
     }
 
     pub fn get_func(&self, name: &str) -> Option<ir::Function> {
         self.func.get(name).cloned()
     }
+}
+
+pub trait FetchVal<'a> {
+    fn fetch_val(&self, name: &str) -> Option<ir::Value>;
+    fn fetch_val_kind(&self, val: ir::Value) -> ir::entities::ValueKind;
 }

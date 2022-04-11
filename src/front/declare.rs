@@ -2,7 +2,7 @@ use koopa::ir::{self, builder_traits::*, Program};
 
 use std::iter::zip;
 
-use crate::WrapProgram;
+use crate::{WrapProgram, front::context::GlobalContext, ty};
 
 use super::{ast, context::Context, gen::Generate, symtab::{FuncTab, ValTab}};
 
@@ -16,9 +16,43 @@ impl<'a> Declare<'a> for ast::Item {
     fn declare(&self, program: &'a mut Program, func_tab: &'a mut FuncTab, global_val_tab: &'a mut ValTab) {
         use ast::ItemKind::*;
         use koopa::ir::{ValueKind, TypeKind};
-        match self.kind {
-            Global() => unimplemented!(),
-            Func(ref f) => {
+        match &self.kind {
+            Global(decls) => {
+                use crate::front::{
+                    gen::eval::Eval,
+                    ast::SymKind
+                };
+                for d in decls {
+                    let mut ctx = GlobalContext::new(program, global_val_tab);
+                    match d.kind {
+                        SymKind::Const => {
+                            dbg!(d.exp.as_ref());
+                            let val = d.exp.as_ref().unwrap().eval(&ctx).unwrap();
+                            let const_val = ctx.add_global_value(val!(integer(val)), None);
+                            let alloc = ctx.add_global_value(
+                                val!(global_alloc(const_val)),
+                                Some(format!("@{}", d.ident)),
+                            );
+                            ctx.register_global_value(&d.ident, alloc);
+                        }
+                        SymKind::Var => {
+                            let v = match &d.exp {
+                                Some(e) => match e.eval(&ctx) {
+                                    Some(v) => ctx.add_global_value(val!(integer(v)), None),
+                                    None => todo!(),
+                                },
+                                None => ctx.add_global_value(val!(zero_init(ty!(i32))), None),
+                            };
+                            let alloc = ctx.add_global_value(
+                                val!(global_alloc(v)),
+                                Some(format!("@{}", d.ident)),
+                            );
+                            ctx.register_global_value(&d.ident, alloc);
+                        }
+                    };
+                }
+            },
+            Func(f) => {
                 let func_data =
                     ir::FunctionData::with_param_names(
                         format!("@{}", f.ident),

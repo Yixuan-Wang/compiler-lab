@@ -9,7 +9,7 @@ pub struct Item {
 #[derive(Debug)]
 pub enum ItemKind {
     /// Global const/variable declaration
-    Global(),
+    Global(Vec<Decl>),
 
     /// Function declaration
     Func(Func),
@@ -24,10 +24,10 @@ pub struct Func {
 }
 
 impl Func {
-    pub fn new(ident: String, output: String, params: Vec<Param>, block: Block) -> Func {
+    pub fn new(ident: String, output: Ty, params: Vec<Param>, block: Block) -> Func {
         Func {
             ident,
-            output: Ty::new(&output),
+            output,
             params,
             block,
         }
@@ -60,6 +60,12 @@ impl From<&Ty> for ir::Type {
 }
 
 #[derive(Debug)]
+pub enum BlockItem {
+    Stmt(Stmt),
+    Decl(Vec<Decl>),
+}
+
+#[derive(Debug)]
 pub struct Stmt {
     pub kind: StmtKind,
 }
@@ -82,7 +88,6 @@ pub enum StmtKind {
     Unit,
     Exp(Exp),
     Block(Block),
-    Decl(Vec<Decl>),
     Assign(LVal, Exp),
     If(Exp, Box<Stmt>, Option<Box<Stmt>>),
     While(Exp, Box<Stmt>),
@@ -102,7 +107,7 @@ pub enum SymKind {
 }
 
 #[derive(Debug)]
-pub struct Block(pub Vec<Stmt>);
+pub struct Block(pub Vec<BlockItem>);
 
 #[derive(Debug)]
 pub struct Decl {

@@ -4,7 +4,7 @@ use koopa::ir::{self, builder_traits::*};
 
 use crate::{util::autonum::Autonum, WrapProgram};
 
-use super::symtab::{Symtab, FuncTab, ValTab};
+use super::symtab::{Symtab, FuncTab, ValTab, FetchVal};
 
 /// Context is a high-level [`koopa::ir::Program`] wrapper around a [`koopa::ir::Function`]
 /// with its symbol table [`Table`].
@@ -40,6 +40,16 @@ impl<'a> WrapProgram for Context<'a> {
     }
     fn this_func_handle(&self) -> ir::Function {
         self.func
+    }
+}
+
+impl<'a> FetchVal<'a> for Context<'a> {
+    fn fetch_val(&self, name: &str) -> Option<ir::Value> {
+        self.table().get_val(name)
+    }
+
+    fn fetch_val_kind(&self, val: ir::Value) -> ir::entities::ValueKind {
+        self.value(val).kind().clone()
     }
 }
 
@@ -159,7 +169,7 @@ impl<'a: 'f, 'f> Context<'a> {
         }
         val
     }
-
+    
     pub fn add_mid_value<F>(&mut self, builder_fn: F) -> ir::Value
     where
         F: FnOnce(ir::builder::LocalBuilder) -> ir::Value,
@@ -248,5 +258,61 @@ impl<'a: 'f, 'f> Context<'a> {
 
     pub fn curr_loop(&mut self) -> (ir::BasicBlock, ir::BasicBlock) {
         *self.loop_stack.last().unwrap()
+    }
+}
+
+pub struct GlobalContext<'a> {
+    pub program: &'a mut ir::Program,
+    global: &'a mut ValTab,
+}
+
+impl<'a> WrapProgram for GlobalContext<'a> {
+    fn program(&self) -> &ir::Program {
+        self.program
+    }
+    fn program_mut(&mut self) -> &mut ir::Program {
+        self.program
+    }
+    fn this_func_handle(&self) -> ir::Function {
+        unimplemented!("Global context contains no function")
+    }
+}
+
+impl<'a> FetchVal<'a> for GlobalContext<'a> {
+    fn fetch_val(&self, name: &str) -> Option<ir::Value> {
+        dbg!(&self.global);
+        self.global.get(name).cloned()
+    }
+
+    fn fetch_val_kind(&self, val: ir::Value) -> ir::entities::ValueKind {
+        self.program.borrow_value(val).kind().clone()
+    }
+}
+
+impl<'a> GlobalContext<'a> {
+    pub fn new(
+        program: &'a mut ir::Program,
+        global_val_tab: &'a mut ValTab,
+    ) -> GlobalContext<'a> {
+        GlobalContext {
+            program,
+            global: global_val_tab,
+        }
+    }
+
+    pub fn add_global_value<F>(&mut self, builder_fn: F, name: Option<String>) -> ir::Value
+    where
+        F: FnOnce(ir::builder::GlobalBuilder) -> ir::Value,
+    {
+        let val = builder_fn(self.program_mut().new_value());
+        if name.is_some() {
+            self.program_mut().set_value_name(val, name);
+        }
+        val
+    }
+
+    pub fn register_global_value(&mut self, name: &str, value: ir::Value) {
+        self.global
+            .insert(name.to_string(), value);
     }
 }

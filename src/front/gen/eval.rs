@@ -1,6 +1,6 @@
 use crate::WrapProgram;
 
-use super::{ast::*, Context};
+use crate::front::{ast::*, symtab::FetchVal};
 
 macro_rules! eval {
     (( $l:expr, $r:expr ) => $f:expr) => {
@@ -11,18 +11,24 @@ macro_rules! eval {
     };
 }
 
-pub trait Eval<'f, T> {
-    fn eval(&self, ctx: &'f Context) -> Option<T>;
+pub trait Eval<'f, C, T>
+where C: WrapProgram + FetchVal<'f>
+{
+    fn eval(&self, ctx: &'f C) -> Option<T>;
 }
 
-impl<'f> Eval<'f, i32> for Exp {
-    fn eval(&self, ctx: &'f Context) -> Option<i32> {
+impl<'f, C> Eval<'f, C, i32> for Exp
+where C: WrapProgram + FetchVal<'f>
+{
+    fn eval(&self, ctx: &'f C) -> Option<i32> {
         self.0.eval(ctx)
     }
 }
 
-impl<'f> Eval<'f, i32> for LOrExp {
-    fn eval(&self, ctx: &'f Context) -> Option<i32> {
+impl<'f, C> Eval<'f, C, i32> for LOrExp
+where C: WrapProgram + FetchVal<'f>
+{
+    fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
             Self::Unary(e) => e.eval(ctx),
             Self::Binary(l, r) => {
@@ -32,8 +38,10 @@ impl<'f> Eval<'f, i32> for LOrExp {
     }
 }
 
-impl<'f> Eval<'f, i32> for LAndExp {
-    fn eval(&self, ctx: &'f Context) -> Option<i32> {
+impl<'f, C> Eval<'f, C, i32> for LAndExp
+where C: WrapProgram + FetchVal<'f>
+{
+    fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
             Self::Unary(e) => e.eval(ctx),
             Self::Binary(l, r) => {
@@ -43,8 +51,10 @@ impl<'f> Eval<'f, i32> for LAndExp {
     }
 }
 
-impl<'f> Eval<'f, i32> for EqExp {
-    fn eval(&self, ctx: &'f Context) -> Option<i32> {
+impl<'f, C> Eval<'f, C, i32> for EqExp
+where C: WrapProgram + FetchVal<'f>
+{
+    fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
             Self::Unary(e) => e.eval(ctx),
             Self::Binary(l, o, r) => match o {
@@ -55,8 +65,10 @@ impl<'f> Eval<'f, i32> for EqExp {
     }
 }
 
-impl<'f> Eval<'f, i32> for RelExp {
-    fn eval(&self, ctx: &'f Context) -> Option<i32> {
+impl<'f, C> Eval<'f, C, i32> for RelExp
+where C: WrapProgram + FetchVal<'f>
+{
+    fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
             Self::Unary(e) => e.eval(ctx),
             Self::Binary(l, o, r) => match o {
@@ -69,8 +81,10 @@ impl<'f> Eval<'f, i32> for RelExp {
     }
 }
 
-impl<'f> Eval<'f, i32> for AddExp {
-    fn eval(&self, ctx: &'f Context) -> Option<i32> {
+impl<'f, C> Eval<'f, C, i32> for AddExp
+where C: WrapProgram + FetchVal<'f>
+{
+    fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
             Self::Unary(e) => e.eval(ctx),
             Self::Binary(l, o, r) => match o {
@@ -81,8 +95,10 @@ impl<'f> Eval<'f, i32> for AddExp {
     }
 }
 
-impl<'f> Eval<'f, i32> for MulExp {
-    fn eval(&self, ctx: &'f Context) -> Option<i32> {
+impl<'f, C> Eval<'f, C, i32> for MulExp
+where C: WrapProgram + FetchVal<'f>
+{
+    fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
             Self::Unary(e) => e.eval(ctx),
             Self::Binary(l, o, r) => match o {
@@ -94,8 +110,10 @@ impl<'f> Eval<'f, i32> for MulExp {
     }
 }
 
-impl<'f> Eval<'f, i32> for UnaryExp {
-    fn eval(&self, ctx: &'f Context) -> Option<i32> {
+impl<'f, C> Eval<'f, C, i32> for UnaryExp
+where C: WrapProgram + FetchVal<'f>
+{
+    fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
             Self::Primary(e) => e.eval(ctx),
             Self::Unary(o, v) => match o {
@@ -107,8 +125,10 @@ impl<'f> Eval<'f, i32> for UnaryExp {
     }
 }
 
-impl<'f> Eval<'f, i32> for PrimaryExp {
-    fn eval(&self, ctx: &'f Context) -> Option<i32> {
+impl<'f, C> Eval<'f, C, i32> for PrimaryExp
+where C: WrapProgram + FetchVal<'f>
+{
+    fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
             Self::Exp(e) => e.eval(ctx),
             Self::Literal(i) => Some(*i),
@@ -117,12 +137,24 @@ impl<'f> Eval<'f, i32> for PrimaryExp {
     }
 }
 
-impl<'f> Eval<'f, i32> for LVal {
-    fn eval(&self, ctx: &'f Context) -> Option<i32> {
+impl<'f, C> Eval<'f, C, i32> for LVal
+where C: WrapProgram + FetchVal<'f>
+{
+    fn eval(&self, ctx: &'f C) -> Option<i32> {
         use koopa::ir::entities::ValueKind;
-        match ctx.table().get_val(&self.0) {
-            Some(v) => match ctx.value(v).kind() {
+        if let Some(v) = ctx.fetch_val(&self.0) {
+            println!("{} found: {:?}", &self.0, v);
+            println!("kind: {:?}", ctx.fetch_val_kind(v));
+        }
+        match ctx.fetch_val(&self.0) {
+            Some(v) => match ctx.fetch_val_kind(v) {
                 ValueKind::Integer(v) => Some(v.value()),
+                ValueKind::GlobalAlloc(a) => {
+                    match ctx.fetch_val_kind(a.init()) {
+                        ValueKind::Integer(v) => Some(v.value()),
+                        _ => unreachable!(),
+                    }
+                }
                 _ => None,
             },
             None => None,

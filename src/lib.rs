@@ -5,7 +5,7 @@ pub mod util;
 
 use koopa::ir;
 
-trait WrapProgram {
+pub trait WrapProgram {
     fn program(&self) -> &ir::Program;
     fn program_mut(&mut self) -> &mut ir::Program;
     fn this_func_handle(&self) -> ir::Function;
@@ -59,7 +59,11 @@ trait WrapProgram {
         self.layout_mut().bb_mut(bb)
     }
 
-    fn value(&self, value: ir::Value) -> &ir::entities::ValueData {
-        self.dfg().value(value)
+    fn value(&self, value: ir::Value) -> ir::entities::ValueData {
+        if value.is_global() {
+            self.program().borrow_value(value).clone()
+        } else {
+            self.dfg().value(value).clone()
+        }
     }
 }
