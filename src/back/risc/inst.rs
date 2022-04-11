@@ -53,6 +53,8 @@ pub enum RiscInst {
     Li(Reg, i32),
     /// 寄存器复制 `mv rd, rs`
     Mv(Reg, Reg),
+    /// 标签地址 data `la rd, label`
+    La(Reg, RiscLabel),
     /// 取 `lw rs, imm12(rd)`（取 `rd+imm12` 存入 `rs`）
     Lw(Reg, i32, Reg),
     /// 存 `sw rs2, imm12(rs1)`（存 `rs2` 入 `rs1+imm2`）
@@ -89,6 +91,7 @@ impl Display for RiscInst {
             J(label) => write!(f, "j {label}"),
             Li(r, i) => write!(f, "li {r}, {i}"),
             Mv(rd, rs) => write!(f, "mv {rd}, {rs}"),
+            La(rd, l) => write!(f, "la {rd}, {l}"),
             Lw(rs, of, rd) => write!(f, "lw {rs}, {of}({rd})"),
             Sw(rs2, of, rs1) => write!(f, "sw {rs2}, {of}({rs1})"),
 

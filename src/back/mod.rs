@@ -9,9 +9,7 @@ mod memory;
 mod risc;
 
 use context::Context;
-use risc::RiscItem as Item;
-
-use self::{gen::Generate, memory::stack::StackMap, risc::RiscLabel};
+use self::{gen::Generate, memory::stack::StackMap, risc::{RiscItem as Item, RiscLabel, RiscDirc as Dirc}};
 
 pub struct Target(pub String);
 
@@ -25,9 +23,33 @@ impl TryFrom<Ir> for Target {
     fn try_from(ir: Ir) -> Result<Self, Self::Error> {
         let mut program = ir.0;
         let mut stack = RefCell::new(StackMap::new());
-        let funcs = program.func_layout().to_vec();
         let mut code = vec![];
+        
+        let data = program.borrow_values();
+        code.extend(data.iter().flat_map(|(_, d)| {
+            use koopa::ir::ValueKind::*;
+            if let GlobalAlloc(a) = d.kind() {
+                let label = RiscLabel::strip(d.name().clone().unwrap());
+                let mut v = vec![
+                    Item::Dirc(Dirc::Data),
+                    Item::Dirc(Dirc::Global(label.clone())),
+                    Item::Label(label),
+                ];
+                v.push(
+                match program.borrow_value(a.init()).kind() {
+                    Integer(i) => Item::Dirc(Dirc::Word(i.value())),
+                    Undef(_) | ZeroInit(_) => Item::Dirc(Dirc::Zero(4)),
+                    _ => unreachable!()
+                });
+                v.push(Item::Blank);
+                v
+            } else {
+                vec![]
+            }
+        }));
+        drop(data);
 
+        let funcs = program.func_layout().to_vec();
         code.extend(funcs.into_iter().flat_map(|func| {
             if program.func(func).layout().entry_bb().is_none() {
                 return vec![]
@@ -35,8 +57,8 @@ impl TryFrom<Ir> for Target {
 
             let ctx = Context::new(&mut program, &mut stack, func);
             let mut insts = vec![
-                Item::Text,
-                Item::Global(RiscLabel::new(ctx.name())),
+                Item::Dirc(Dirc::Text),
+                Item::Dirc(Dirc::Global(RiscLabel::new(ctx.name()))),
                 Item::Label(RiscLabel::new(ctx.name())),
             ];
             ctx.stack_mut().new_frame(func);

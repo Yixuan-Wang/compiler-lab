@@ -6,6 +6,7 @@ use std::fmt::Display;
 pub use inst::*;
 pub use reg::*;
 
+#[derive(Clone)]
 pub struct RiscLabel(String);
 
 impl Display for RiscLabel {
@@ -38,9 +39,7 @@ impl RiscLabel {
 
 #[allow(dead_code)]
 pub enum RiscItem {
-    Text,
-    Data,
-    Global(RiscLabel),
+    Dirc(RiscDirc),
     Label(RiscLabel),
     Inst(RiscInst),
     Comment(String),
@@ -53,13 +52,33 @@ impl Display for RiscItem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use self::RiscItem::*;
         match self {
-            Global(l) => write!(f, "  .globl {l}\n"),
-            Text => write!(f, "  .text\n"),
-            Data => write!(f, "  .data\n"),
             Label(l) => write!(f, "{l}:\n"),
+            Dirc(d) => write!(f, "  .{d}\n"),
             Inst(i) => write!(f, "  {i}\n"),
             Comment(c) => write!(f, "# {c}\n"),
             Blank => write!(f, "\n"),
+        }
+    }
+}
+
+#[allow(dead_code)]
+pub enum RiscDirc {
+    Text,
+    Data,
+    Global(RiscLabel),
+    Zero(i32),
+    Word(i32),
+}
+
+impl Display for RiscDirc {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use self::RiscDirc::*;
+        match self {
+            Text => write!(f, "text"),
+            Data => write!(f, "data"),
+            Global(l) => write!(f, "globl {l}"),
+            Zero(z) => write!(f, "zero {z}"),
+            Word(w) => write!(f, "word {w}"),
         }
     }
 }

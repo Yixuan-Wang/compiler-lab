@@ -3,7 +3,7 @@ use koopa::ir::Value;
 use crate::back::{
     risc::{
         RiscInst::{self as Inst, *},
-        RiscReg as Reg,
+        RiscReg as Reg, RiscLabel,
     },
     Context,
 };
@@ -33,8 +33,13 @@ impl<'a> ToReg<'a> for Value {
                 (reg, vec![Lw(reg, offset, Reg::Sp)])
             }
             Load(l) => {
-                let offset = frame!(ctx).get(l.src());
-                (reg, vec![Lw(reg, offset, Reg::Sp)])
+                if !l.src().is_global() {
+                    let offset = frame!(ctx).get(l.src());
+                    (reg, vec![Lw(reg, offset, Reg::Sp)])
+                } else {
+                    let label = RiscLabel::strip(ctx.value(l.src()).name().clone().unwrap());
+                    (reg, vec![La(reg, label), Lw(reg, 0, reg)])
+                }
             }
             FuncArgRef(a) => {
                 let i = a.index();

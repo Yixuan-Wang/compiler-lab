@@ -91,6 +91,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 } else { vec![] }
             }, */
             Alloc(_) => vec![],
+            GlobalAlloc(_) => vec![],
             Load(_) => vec![],
             Store(s) => {
                 let mut v = vec![];
@@ -99,8 +100,13 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 }
                 let (reg, inst) = s.value().to_reg(ctx, None);
                 v.extend(inst);
-                let offset = frame!(ctx).get(s.dest());
-                v.push(Inst::Sw(reg, offset, Reg::Sp));
+                if !s.dest().is_global() {
+                    let offset = frame!(ctx).get(s.dest());
+                    v.push(Inst::Sw(reg, offset, Reg::Sp));
+                } else {
+                    let label = RiscLabel::strip(ctx.value(s.dest()).name().clone().unwrap());
+                    v.extend([Inst::La(Reg::T(0), label), Inst::Sw(reg, 0, Reg::T(0))]);
+                }
                 v
             }
             Undef(_) => vec![],

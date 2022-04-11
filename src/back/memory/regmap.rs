@@ -15,7 +15,7 @@ pub struct RegMap {
 impl RegMap {
     pub fn new() -> RegMap {
         RegMap {
-            reg_t: Autocount::new(0, Some(7)),
+            reg_t: Autocount::new(1, Some(7)),
             reg_allo: HashMap::new(),
             reg_owner: HashMap::new(),
         }
