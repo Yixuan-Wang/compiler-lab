@@ -43,30 +43,22 @@ Param: Param = "int" <ident:IDENT> => Param { ty: Ty::Int, ident };
 
 Decl: Vec<Decl> = {
     "const" "int" <v: Comma<ConstDef>> ";" => {
-        v.into_iter().map(|(ident, constexp)| {
-            Decl {
-                ident,
-                exp: Some(constexp),
-                ty: Ty::Int,
-                kind: SymKind::Const,
-            }
-        }).collect()
+        v.into_iter().map(|d| Decl::from(d, SymKind::Const)).collect()
     },
     "int" <v: Comma<VarDef>> ";" => {
-        v.into_iter().map(|(ident, exp)| {
-            Decl {
-                ident,
-                exp,
-                ty: Ty::Int,
-                kind: SymKind::Var,
-            }
-        }).collect()
+        v.into_iter().map(|d| Decl::from(d, SymKind::Var)).collect()
     },
 }
 
-ConstDef: (String, Exp) = <IDENT> "=" <ConstExp>;
+ConstDef: Def = {
+    <i:IDENT> "=" <e:ConstExp> => Def::Value(i, Some(e)),
+    <i:IDENT> <d:("[" <ConstExp> "]")+> "=" <l:Initializer> => Def::Array(i, d, Some(l)),
+}
 
-VarDef: (String, Option<Exp>) = <IDENT> <("=" <VarExp>)?>;
+VarDef: Def = {
+    <i:IDENT> <oe:("=" <VarExp>)?> => Def::Value(i, oe),
+    <i:IDENT> <d:("[" <VarExp> "]")+> <ol:("=" <Initializer>)?> => Def::Array(i, d, ol),
+}
 
 Block: Block = "{" <BlockItem*> "}" => Block(<>);
 
@@ -129,9 +121,15 @@ ReturnStmt: Stmt = {
     "return" ";" => Stmt { kind: StmtKind::Return(None)},
 }
 
-LVal: LVal = IDENT => LVal(<>);
+LVal: LVal = <IDENT> <("[" <Exp> "]")*> => LVal(<>);
 
 Exp: Exp = LOrExp => Exp(<>);
+
+Initializer: Initializer = {
+    "{" <Comma<Initializer>> "}" => Initializer::List(<>),
+    "{" "}" => Initializer::List(vec![]),
+    Exp => Initializer::Value(<>),
+}
 
 ConstExp: Exp = Exp;
 

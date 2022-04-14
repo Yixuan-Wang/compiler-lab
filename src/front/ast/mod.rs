@@ -1,5 +1,6 @@
 use koopa::ir;
-use std::ops::{Deref, DerefMut};
+use std::{ops::{Deref, DerefMut}, fmt::Display};
+use super::{gen::eval::Eval, symtab::FetchVal};
 
 #[derive(Debug)]
 pub struct Item {
@@ -34,9 +35,10 @@ impl Func {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum Ty {
     Int,
+    Array(Vec<Exp>),
     Void,
 }
 
@@ -55,6 +57,22 @@ impl From<&Ty> for ir::Type {
         match t {
             Ty::Int => ty!(i32),
             Ty::Void => ty!(()),
+            Ty::Array(_) => unimplemented!(),
+        }
+    }
+}
+
+impl Ty {
+    pub fn to<'a, C>(&self, ctx: &'a C) -> ir::Type
+    where C: WrapProgram + FetchVal<'a> {
+        match self {
+            Ty::Int => ty!(i32),
+            Ty::Void => ty!(()),
+            Ty::Array(d) => {
+                let dim = d.eval(ctx).expect("SemanticsError[ArrayTypeFailure]: Array type cannot be evaluated during compile time.");
+                let shape: Shape = dim.into();
+                shape.try_into().unwrap()
+            }
         }
     }
 }
@@ -114,11 +132,57 @@ pub struct Decl {
     pub ident: String,
     pub ty: Ty,
     pub kind: SymKind,
-    pub exp: Option<Exp>,
+    pub init: Option<Init>,
 }
 
 #[derive(Debug)]
-pub struct LVal(pub String);
+pub enum Init {
+    Initializer(Initializer),
+    Exp(Exp),
+}
+
+#[derive(Debug)]
+pub enum Def {
+    Value(String, Option<Exp>),
+    Array(String, Vec<Exp>, Option<Initializer>),
+}
+
+impl Decl {
+    pub fn from(def: Def, kind: SymKind) -> Self {
+        match def {
+            Def::Value(ident, exp) => {
+                Decl {
+                    ident,
+                    init: exp.map(Init::Exp),
+                    ty: Ty::Int,
+                    kind,
+                }
+            },
+            Def::Array(ident, dim, init) => {
+                Decl {
+                    ident,
+                    init: init.map(Init::Initializer),
+                    ty: Ty::Array(dim),
+                    kind,
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct LVal (
+    pub String,
+    pub Vec<Exp>,
+);
+
+impl Display for LVal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", &self.0)?;
+        self.1.iter().map(|e| write!(f, "[{}]", e)).collect::<Result<Vec<_>,_>>()?;
+        Ok(())
+    }
+}
 
 #[derive(Debug)]
 pub struct Param {
@@ -126,7 +190,9 @@ pub struct Param {
     pub ty: Ty,
 }
 
+use crate::{ty, WrapProgram, util::shape::Shape};
+mod exp;
 pub use exp::*;
 
-use crate::ty;
-mod exp;
+mod initializer;
+pub use initializer::*;

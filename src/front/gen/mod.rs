@@ -1,19 +1,25 @@
-// #[macro_use] use super::context;
-// use crate::auton;
+use crate::front::ast::{Ty, ShapedInitializer};
+use crate::front::gen::eval::generate_evaled_aggregate;
+use crate::util::shape::Shape;
 use crate::{WrapProgram, ty};
 
 use crate::front::{
-    ast,
+    ast::{self, EvaledAggregate},
     context::Context,
 };
 use koopa::ir::{self, builder_traits::*};
 
 pub mod eval;
+use self::eval::Eval;
 
 pub mod prelude;
 
 pub mod lazy;
 pub use lazy::*;
+
+
+use super::ast::{Init, RawAggregate, GeneratedAggregate};
+use super::context::AddPlainValue;
 
 /// [`Generate`] 处理语句（[`ast::StmtKind`]），将每一条语句转化为 Koopa 内存形式
 pub trait Generate<'f> {
@@ -182,29 +188,72 @@ impl<'f> Generate<'f> for ast::Decl {
     type Val = ();
     fn generate(&self, ctx: &'f mut Context) -> Self::Val {
         use ast::SymKind;
-        use eval::Eval;
+        let ty: ir::Type = self.ty.to(ctx);
         match self.kind {
             SymKind::Const => {
-                let val = self.exp.as_ref().unwrap().eval(ctx).unwrap_or_else(|| panic!("SemanticsError[ConstEvalFailure]: '{}' cannot be evaluated during compile time.", self.ident));
-                let const_val = ctx.add_value(val!(integer(val)), None);
-                ctx.table_mut().insert_val(&self.ident, const_val);
+                let init_val = self.init.as_ref().map(|i| match i {
+                    Init::Initializer(i) => {
+                        let unevaled_shape = if let Ty::Array(a) = &self.ty { a } else { unreachable!() };
+                        let shape: Shape = unevaled_shape.eval(ctx)?.into();
+                        let tys = shape.tys();
+                        let shaped_initializer = ShapedInitializer(&shape, i);
+                        let evaled_aggregate = shaped_initializer.eval(ctx)?;
+                        Some(generate_evaled_aggregate(&evaled_aggregate, ctx, &tys))
+                    }
+                    Init::Exp(e) => e.eval(ctx).map(|v| ctx.add_value(val!(integer(v)), None))
+                }).flatten();
+                let init_val = init_val.unwrap_or_else(|| panic!("SemanticsError[ConstEvalFailure]: '{}' cannot be evaluated during compile time.", self.ident));
+                ctx.table_mut().insert_val(&self.ident, init_val);
             }
             SymKind::Var => {
-                let v = match &self.exp {
-                    Some(e) => match e.eval(ctx) {
-                        Some(v) => ctx.add_value(val!(integer(v)), None),
-                        None => e.generate(ctx),
+                enum InitVal {
+                    One(ir::Value),
+                    Done,
+                }
+
+                let init_val = match &self.init {
+                    Some(i) => match i {
+                        Init::Initializer(i) => {
+                            let unevaled_shape = if let Ty::Array(a) = &self.ty { a } else { unreachable!() };
+                            let shape: Shape = unevaled_shape.eval(ctx).unwrap().into();
+                            let tys = shape.tys();
+                            println!("{} = ", &self.ident); // ! DEBUG
+                            let raw_aggregate = i.build(&shape);
+                            println!("{}", raw_aggregate);
+                            
+                            let alloc = ctx.add_value(val!(alloc(ty.clone())), Some(format!("@{}", &self.ident)));
+                            ctx.insert_inst(alloc, ctx.curr());
+                            ctx.table_mut().insert_val(&self.ident, alloc);
+
+                            generate_aggregate(&raw_aggregate, alloc, ctx, &tys);
+                            InitVal::Done
+                        }
+                        Init::Exp(e) => {
+                            let val = match e.eval(ctx) {
+                                Some(v) => ctx.add_value(val!(integer(v)), None),
+                                None => e.generate(ctx)
+                            };
+                            InitVal::One(val)
+                        }
                     },
-                    None => ctx.add_value(val!(undef(ty!(i32))), None),
+                    None => InitVal::One(
+                        ctx.add_value(val!(zero_init(ty.clone())), None)
+                    ),
                 };
-                let alloc = ctx.add_value(
-                    val!(alloc(ty!(i32))),
-                    Some(format!("@{}", &self.ident)),
-                );
-                ctx.table_mut().insert_val(&self.ident, alloc);
-                ctx.insert_inst(alloc, ctx.curr());
-                let store = ctx.add_value(val!(store(v, alloc)), None);
-                ctx.insert_inst(store, ctx.curr());
+
+                match init_val {
+                    InitVal::One(val) => {
+                        let alloc = ctx.add_value(
+                            val!(alloc(ty.clone())),
+                            Some(format!("@{}", &self.ident)),
+                        );
+                        ctx.table_mut().insert_val(&self.ident, alloc);
+                        ctx.insert_inst(alloc, ctx.curr());
+                        let store = ctx.add_value(val!(store(val, alloc)), None);
+                        ctx.insert_inst(store, ctx.curr());
+                    },
+                    InitVal::Done => {}
+                };
             }
         };
     }
@@ -234,12 +283,63 @@ impl<'f> Generate<'f> for ast::LVal {
             )
         });
         let lval = ctx.value(lval_handle);
-        if lval.kind().is_const() {
-            lval_handle
+        if self.1.is_empty() {
+            if lval.kind().is_const() {
+                lval_handle
+            } else {
+                let load = ctx.add_mid_value(val!(load(lval_handle)));
+                ctx.insert_inst(load, ctx.curr());
+                load
+            }
         } else {
-            let load = ctx.add_mid_value(val!(load(lval_handle)));
+            let indices = (&self.1).generate(ctx);
+            let mut ptr = lval_handle;
+            for index in indices {
+                let get_element_ptr = ctx.add_mid_value(val!(get_elem_ptr(ptr, index)));
+                ctx.insert_inst(get_element_ptr, ctx.curr());
+                ptr = get_element_ptr;
+            }
+            let load = ctx.add_mid_value(val!(load(ptr)));
             ctx.insert_inst(load, ctx.curr());
             load
+        }
+        /*
+        Aggregate(_) => {
+                let mut lval = lval;
+                let indices = (&self.1).eval(ctx).unwrap();
+                for dim in indices {
+                    lval = {
+                        if let Aggregate(a) = ctx.value(lval).kind() {
+                            *a.elems().get(dim as usize).unwrap()
+                        } else { panic!("SemanticsError[ConstArrayIndexError]: Invalid index [{dim}].") }
+                    }
+                }
+                lval
+            }, */
+    }
+}
+
+fn generate_aggregate<'f>(raw: &RawAggregate, ptr: ir::Value, ctx: &'f mut Context, tys: &Vec<ir::Type>) -> () {
+    match raw {
+        RawAggregate::Agg(v) => {
+            for (i, a) in v.iter().enumerate() {
+                let idx = ctx.add_plain_value_integer(i as i32);
+                let p = ctx.add_mid_value(val!(get_elem_ptr(ptr, idx)));
+                ctx.insert_inst(p, ctx.curr());
+                generate_aggregate(a, p, ctx, tys);
+            }
+        }
+        RawAggregate::Value(e) => {
+            let val = e.generate(ctx);
+            let store = ctx.add_value(val!(store(val, ptr)), None);
+            ctx.insert_inst(store, ctx.curr());
+        }
+        RawAggregate::ZeroInitOne(u)
+            | RawAggregate::ZeroInitWhole(u)
+        => {
+            let zero = ctx.add_plain_value_zeroinit(tys[*u].clone());
+            let store = ctx.add_value(val!(store(zero, ptr)), None);
+            ctx.insert_inst(store, ctx.curr());
         }
     }
 }
@@ -259,6 +359,13 @@ impl<'f> Generate<'f> for ast::Exp {
     type Val = ir::Value;
     fn generate(&self, ctx: &'f mut Context) -> Self::Val {
         self.0.generate(ctx)
+    }
+}
+
+impl<'f> Generate<'f> for &Vec<ast::Exp> {
+    type Val = Vec<ir::Value>;
+    fn generate(&self, ctx: &'f mut Context) -> Self::Val {
+        self.iter().map(|e| e.generate(ctx)).collect()
     }
 }
 

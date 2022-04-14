@@ -51,6 +51,10 @@ impl<'a> FetchVal<'a> for Context<'a> {
     fn fetch_val_kind(&self, val: ir::Value) -> ir::entities::ValueKind {
         self.value(val).kind().clone()
     }
+
+    fn fetch_val_type(&self, val: ir::Value) -> ir::TypeKind {
+        self.value(val).ty().kind().clone()
+    }
 }
 
 impl<'a: 'f, 'f> Context<'a> {
@@ -287,6 +291,10 @@ impl<'a> FetchVal<'a> for GlobalContext<'a> {
     fn fetch_val_kind(&self, val: ir::Value) -> ir::entities::ValueKind {
         self.program.borrow_value(val).kind().clone()
     }
+
+    fn fetch_val_type(&self, val: ir::Value) -> ir::TypeKind {
+        self.program.borrow_value(val).ty().kind().clone()
+    }
 }
 
 impl<'a> GlobalContext<'a> {
@@ -314,5 +322,39 @@ impl<'a> GlobalContext<'a> {
     pub fn register_global_value(&mut self, name: &str, value: ir::Value) {
         self.global
             .insert(name.to_string(), value);
+    }
+}
+
+pub trait AddPlainValue {
+    fn add_plain_value_integer(&mut self, val: i32) -> ir::Value;
+    fn add_plain_value_aggregate(&mut self, elems: Vec<ir::Value>) -> ir::Value;
+    fn add_plain_value_zeroinit(&mut self, ty: ir::Type) -> ir::Value;
+}
+
+impl<'a> AddPlainValue for Context<'a> {
+    fn add_plain_value_integer(&mut self, val: i32) -> ir::Value {
+        self.add_value(val!(integer(val)), None)
+    }
+
+    fn add_plain_value_aggregate(&mut self, elems: Vec<ir::Value>) -> ir::Value {
+        self.add_value(val!(aggregate(elems)), None)
+    }
+
+    fn add_plain_value_zeroinit(&mut self, ty: ir::Type) -> ir::Value {
+        self.add_value(val!(zero_init(ty)), None)
+    }
+}
+
+impl<'a> AddPlainValue for GlobalContext<'a> {
+    fn add_plain_value_integer(&mut self, val: i32) -> ir::Value {
+        self.add_global_value(val!(integer(val)), None)
+    }
+
+    fn add_plain_value_aggregate(&mut self, elems: Vec<ir::Value>) -> ir::Value {
+        self.add_global_value(val!(aggregate(elems)), None)
+    }
+
+    fn add_plain_value_zeroinit(&mut self, ty: ir::Type) -> ir::Value {
+        self.add_global_value(val!(zero_init(ty)), None)
     }
 }

@@ -21,6 +21,8 @@ pub fn into_riscv(ir: Ir) -> Result<String, Box<dyn Error>> {
 impl TryFrom<Ir> for Target {
     type Error = Box<dyn Error>;
     fn try_from(ir: Ir) -> Result<Self, Self::Error> {
+        koopa::ir::Type::set_ptr_size(4);
+        
         let mut program = ir.0;
         let mut stack = RefCell::new(StackMap::new());
         let mut code = vec![];

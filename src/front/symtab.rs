@@ -59,4 +59,5 @@ impl<'a> Symtab<'a> {
 pub trait FetchVal<'a> {
     fn fetch_val(&self, name: &str) -> Option<ir::Value>;
     fn fetch_val_kind(&self, val: ir::Value) -> ir::entities::ValueKind;
+    fn fetch_val_type(&self, val: ir::Value) -> ir::TypeKind;
 }

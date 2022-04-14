@@ -2,7 +2,7 @@ use koopa::ir::{self, builder_traits::*, Program};
 
 use std::iter::zip;
 
-use crate::{WrapProgram, front::context::GlobalContext, ty};
+use crate::{WrapProgram, front::{context::GlobalContext, ast::ShapedInitializer, gen::eval::generate_evaled_aggregate}};
 
 use super::{ast, context::Context, gen::Generate, symtab::{FuncTab, ValTab}};
 
@@ -20,29 +20,34 @@ impl<'a> Declare<'a> for ast::Item {
             Global(decls) => {
                 use crate::front::{
                     gen::eval::Eval,
-                    ast::SymKind
+                    ast::{SymKind, Init, Ty}
                 };
                 for d in decls {
                     let mut ctx = GlobalContext::new(program, global_val_tab);
+                    let ty = d.ty.to(&ctx);
+                    let init_val = d.init.as_ref().map(|i| {
+                        match i {
+                            Init::Initializer(i) => {
+                                let unevaled_shape = if let Ty::Array(a) = &d.ty { a } else { unreachable!() };
+                                let shape = unevaled_shape.eval(&ctx).unwrap().into();
+                                let unevaled_initi = ShapedInitializer(&shape, i);
+                                let evaled_agg = unevaled_initi.eval(&ctx).unwrap();
+                                let tys = shape.tys();
+                                Some(generate_evaled_aggregate(&evaled_agg, &mut ctx, &tys))
+                            }
+                            Init::Exp(e) => e.eval(&ctx).map(|v| ctx.add_global_value(val!(integer(v)), None)),
+                        }
+                    }).flatten();
                     match d.kind {
                         SymKind::Const => {
-                            dbg!(d.exp.as_ref());
-                            let val = d.exp.as_ref().unwrap().eval(&ctx).unwrap();
-                            let const_val = ctx.add_global_value(val!(integer(val)), None);
                             let alloc = ctx.add_global_value(
-                                val!(global_alloc(const_val)),
+                                val!(global_alloc(init_val.unwrap())),
                                 Some(format!("@{}", d.ident)),
                             );
                             ctx.register_global_value(&d.ident, alloc);
                         }
                         SymKind::Var => {
-                            let v = match &d.exp {
-                                Some(e) => match e.eval(&ctx) {
-                                    Some(v) => ctx.add_global_value(val!(integer(v)), None),
-                                    None => todo!(),
-                                },
-                                None => ctx.add_global_value(val!(zero_init(ty!(i32))), None),
-                            };
+                            let v = init_val.unwrap_or(ctx.add_global_value(val!(zero_init(ty)), None));
                             let alloc = ctx.add_global_value(
                                 val!(global_alloc(v)),
                                 Some(format!("@{}", d.ident)),

@@ -1,6 +1,6 @@
 pub mod ast;
 #[macro_use]
-mod context;
+pub(crate) mod context;
 mod declare;
 mod gen;
 mod symtab;
