@@ -57,9 +57,9 @@ impl From<&Vec<i32>> for Shape {
     }
 }
 
-struct TypeKindRef<'a>(&'a ir::TypeKind);
+pub struct TypeKindIter<'a>(&'a ir::TypeKind);
 
-impl<'a> Iterator for TypeKindRef<'a> {
+impl<'a> Iterator for TypeKindIter<'a> {
     type Item = usize;
     fn next(&mut self) -> Option<Self::Item> {
         use ir::TypeKind::*;
@@ -86,7 +86,7 @@ impl TryFrom<&ir::TypeKind> for Shape {
     fn try_from(kind: &ir::TypeKind) -> Result<Self, Self::Error> {
         Ok(
             Shape::new(
-                TypeKindRef(kind)
+                TypeKindIter(kind)
                 .into_iter()
                 .map(|u| u.try_into())
                 .collect::<Result<Vec<_>,_>>()?

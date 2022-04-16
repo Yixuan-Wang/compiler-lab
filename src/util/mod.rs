@@ -4,3 +4,4 @@ pub mod autonum;
 pub mod ir_type;
 
 pub mod shape;
+pub mod merge;

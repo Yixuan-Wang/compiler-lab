@@ -68,9 +68,9 @@ impl Initializer {
         // let mut dest = vec![];
         self.fill(&mut h, );
         h.try_carry(0);
-        dbg!(&h);
         assert_eq!(h.stack.len(), 1);
         let x = h.stack.pop().unwrap();
+        println!("{:?}", &x);
         x
     }
 
@@ -103,7 +103,7 @@ impl Initializer {
                     l.fill(h);
                 }
 
-                println!("108 {:?} @ {:?}", &h.stack, &h.progress);
+                // println!("108 {:?} @ {:?}", &h.stack, &h.progress);
 
                 if v.is_empty() && (matches!(h.status, InitializerState::Fill) || h.progress.len() > h.carrying.len()) {
                     if !matches!(h.status, InitializerState::Fill) {

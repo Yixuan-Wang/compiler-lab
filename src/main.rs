@@ -54,4 +54,10 @@ mod test {
         print!("{}", riscv);
         fs::write("this.test.asm", riscv).unwrap();
     }
+
+    #[test]
+    fn two() {
+        koopa();
+        riscv();
+    }
 }

@@ -126,6 +126,14 @@ impl RiscInst {
                     ]
                 } else { vec![self] }
             }
+            Addi(rd, rs, imm) => {
+                if imm > MAX_IMM {
+                    vec![
+                        Li(Reg::T(0), imm),
+                        Add(rd, rs, Reg::T(0)),
+                    ]
+                } else { vec![self] }
+            }
             _ => unimplemented!()
         }
     }

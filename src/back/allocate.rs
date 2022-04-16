@@ -11,28 +11,32 @@ pub trait Allocate {
 
 impl Allocate for ir::Type {
     fn allocate(&self) -> i32 {
-        use ir::TypeKind::*;
-        match self.kind() {
-            Int32 => 4,
-            Unit => 0,
-            Array(_, _) => unimplemented!("Future"),
-            Pointer(t) => match t.kind() {
-                Int32 => 4,
-                Unit => unreachable!(),
-                _ => unimplemented!("Future"),
-            },
-            Function(_, _) => unimplemented!("Function size unknown"),
-        }
+        // use ir::TypeKind::*;
+        // match self.kind() {
+        //     Int32 => 4,
+        //     Unit => 0,
+        //     Array(_, _) => self.size(),
+        //     Pointer(t) => match t.kind() {
+        //         Int32 => 4,
+        //         Unit => unreachable!(),
+        //         _ => unimplemented!("Future"),
+        //     },
+        //     Function(_, _) => unimplemented!("Function size unknown"),
+        // }
+        self.size().try_into().unwrap()
     }
 }
 
 impl Allocate for ir::entities::ValueData {
     /// 将所有的值 spill 到栈上
     fn allocate(&self) -> i32 {
-        use ir::ValueKind::*;
-        let ty_size = self.ty().allocate();
+        use ir::{ValueKind::*, TypeKind::*};
         match self.kind() {
-            Alloc(_) | Binary(_) | Call(_) => ty_size,
+            Binary(_) | Call(_) | GetElemPtr(_) => self.ty().allocate(),
+            Alloc(_) => {
+                { if let Pointer(t) = self.ty().kind() { t } else { unreachable!() } }
+                .allocate()
+            }
             _ => 0,
         }
     }

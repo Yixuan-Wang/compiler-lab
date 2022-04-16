@@ -176,6 +176,12 @@ pub struct LVal (
     pub Vec<Exp>,
 );
 
+#[derive(Debug)]
+pub enum AsLVal {
+    L,
+    R,
+}
+
 impl Display for LVal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", &self.0)?;

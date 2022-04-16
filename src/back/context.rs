@@ -1,6 +1,6 @@
 use std::cell::{Ref, RefCell, RefMut};
 
-use crate::WrapProgram;
+use crate::{WrapProgram, back::allocate::Allocate};
 use koopa::ir;
 
 use super::{
@@ -155,6 +155,7 @@ impl<'a> Context<'a> {
         // 分配局部变量
         ir_insts.iter().for_each(|h| {
             let d = self.value(*h);
+            v.push(Com(format!("prologue {:?} {} {}", d.kind(), d.ty().kind(), d.allocate())));
             frame!(self._mut).insert_high(*h, &d);
         });
 
@@ -180,7 +181,7 @@ impl<'a> Context<'a> {
 
         // 保存 `ra` 寄存器
         if !is_leaf {
-            v.push(Sw(Reg::Ra, frame!(self).get(Reg::Ra), Reg::Sp));
+            v.extend(Sw(Reg::Ra, frame!(self).get(Reg::Ra), Reg::Sp).expand_imm());
         }
 
         v

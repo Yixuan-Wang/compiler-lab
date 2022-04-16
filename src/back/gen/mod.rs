@@ -73,13 +73,13 @@ impl<'a> Generate<'a> for ir::entities::Value {
                         Mul => v.push(Inst::Mul(dreg, lreg, rreg)),
                         Div => v.push(Inst::Div(dreg, lreg, rreg)),
                         Mod => v.push(Inst::Rem(dreg, lreg, rreg)),
-                        _ => todo!(),
+                        _ => unimplemented!(),
                     };
                     v.extend(Inst::Sw(dreg, offset, Reg::Sp).expand_imm())
                 }
                 v
             }
-            Integer(_) => vec![],
+            Integer(_) | ZeroInit(_) => vec![],
             /* {
                 if !ctx.on_reg(*self) {
                     if i.value() == 0 {
@@ -94,19 +94,41 @@ impl<'a> Generate<'a> for ir::entities::Value {
             GlobalAlloc(_) => vec![],
             Load(_) => vec![],
             Store(s) => {
+                use ir::TypeKind;
                 let mut v = vec![];
                 if let Undef(_) = ctx.value(s.value()).kind() {
                     return v;
                 }
                 let (reg, inst) = s.value().to_reg(ctx, None);
                 v.extend(inst);
-                if !s.dest().is_global() {
-                    let offset = frame!(ctx).get(s.dest());
-                    v.extend(Inst::Sw(reg, offset, Reg::Sp).expand_imm());
-                } else {
-                    let label = RiscLabel::strip(ctx.value(s.dest()).name().clone().unwrap());
-                    let temp_reg = ctx.reg_map_mut().appoint_temp_reg(s.dest());
-                    v.extend([Inst::La(temp_reg, label), Inst::Sw(reg, 0, temp_reg)]);
+                let dest = s.dest();
+                v.push(Inst::Com(format!("store ({}, {:?}) ({}, {:?})", value_data.ty(), value_data.kind(), ctx.value(s.dest()).ty(), ctx.value(s.dest()).kind())));
+                match ctx.value(dest).kind() {
+                    Alloc(_) => {
+                        if !dest.is_global() {
+                            let offset = frame!(ctx).get(dest);
+                            v.extend(Inst::Sw(reg, offset, Reg::Sp).expand_imm());
+                        } else {
+                            let label = RiscLabel::strip(ctx.value(dest).name().clone().unwrap());
+                            let temp_reg = ctx.reg_map_mut().appoint_temp_reg(s.dest());
+                            v.extend([Inst::La(temp_reg, label), Inst::Sw(reg, 0, temp_reg)]);
+                        }
+                    }
+                    GetElemPtr(_) => {
+                        let offset = frame!(ctx).get(dest);
+                        v.extend(Inst::Lw(Reg::T(0), offset, Reg::Sp).expand_imm());
+                        // v.push(Inst::Sw(Reg::T(0), 0, Reg::T(0)));
+                        /* while let TypeKind::Pointer(t) = ptr {
+                            ptr = t.kind()
+                        } */
+                        v.push(Inst::Sw(reg, 0, Reg::T(0)));
+                    }
+                    _ => unimplemented!("{:?}", ctx.value(dest).kind())
+                    // mut ptr @ TypeKind::Pointer(_) => {
+                    //     assert!(!dest.is_global());
+                    //     
+                    // }
+                    // _ => unimplemented!("store {}", ctx.value(dest).ty().kind())
                 }
                 v
             }
@@ -150,6 +172,57 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 v
             }
             FuncArgRef(_) => vec![],
+            // getelemptr ptr index 
+            // where ptr: *[T; N], index: i32
+            //       getelemptr *T
+            // ptr + index * sizeof(T)
+            GetElemPtr(p) => {
+                use ir::TypeKind;
+                let mut v: Vec<Inst> = vec![];
+                v.push(Inst::Com(format!("get_elem_ptr {:?} {:?}", ctx.value(p.src()).name(), ctx.value(p.index()).name())));
+                // let sreg = ctx.reg_map_mut().appoint_temp_reg(*self);
+                
+                // ptr -> sreg
+                // if p.src().is_global() {
+                //     let label = RiscLabel::strip(ctx.value(p.src()).name().clone().unwrap());
+                //     v.extend(vec![Inst::La(sreg, label)])
+                // } else {
+                //     let ptr_offset = frame!(ctx).get(p.src());
+                //     v.extend(Inst::Addi(sreg, Reg::Sp, ptr_offset).expand_imm());
+                // }
+                let (sreg, sinst) = p.src().to_reg(ctx, None);
+                v.extend(sinst);
+
+                // sizeof(T)
+                let t_size: usize = {
+                    // t: T <- ta: [T; N]
+                    if let TypeKind::Array(t, _) = {
+                        // ta: [T; N] <- ptr: *[T; N]
+                        if let TypeKind::Pointer(ta) = ctx.value(p.src()).ty().kind() { ta }
+                        else { unreachable!() }
+                    }.kind() { t }
+                    else { unreachable!() }
+                }
+                .size();
+
+                // index -> ireg
+                let (ireg, iinst) = p.index().to_reg(ctx, None);
+                v.extend(iinst);
+
+                v.extend([
+                    Inst::Com(format!("! SIZE {}", t_size)),
+                    Inst::Li(Reg::T(0), t_size.try_into().unwrap()), // t0 <- sizeof(T)
+                    Inst::Com(format!("END SIZE")),
+                    Inst::Mul(Reg::T(0), Reg::T(0), ireg), // t0 <- sizeof(T) @ t0 * index @ ireg
+                    Inst::Add(sreg, Reg::T(0), sreg), // sreg <- product @ t0 + ptr @ sreg
+                ]);
+
+                // SPILL
+                let offset = frame!(ctx).get(*self);
+                v.extend(Inst::Sw(sreg, offset, Reg::Sp).expand_imm());
+                v.push(Inst::Com(format!("end get_elem_ptr")));
+                v
+            }
             _ => todo!("{:#?}", value_data.kind()),
         }
     }

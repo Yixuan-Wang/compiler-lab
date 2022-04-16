@@ -206,6 +206,10 @@ impl<'a: 'f, 'f> Context<'a> {
         }
     }
 
+    pub fn val_name(&self, v: ir::Value) -> String {
+        self.value(v).name().clone().unwrap_or("{?}".to_string())
+    }
+
     /* pub fn kind(&self) -> &ir::TypeKind {
         match self.func().ty().kind() {
             ir::TypeKind::Function(_, out) => out.kind(),
@@ -284,7 +288,6 @@ impl<'a> WrapProgram for GlobalContext<'a> {
 
 impl<'a> FetchVal<'a> for GlobalContext<'a> {
     fn fetch_val(&self, name: &str) -> Option<ir::Value> {
-        dbg!(&self.global);
         self.global.get(name).cloned()
     }
 

@@ -6,7 +6,7 @@ use std::fmt::Display;
 pub use inst::*;
 pub use reg::*;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct RiscLabel(String);
 
 impl Display for RiscLabel {
@@ -62,6 +62,7 @@ impl Display for RiscItem {
 }
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum RiscDirc {
     Text,
     Data,
