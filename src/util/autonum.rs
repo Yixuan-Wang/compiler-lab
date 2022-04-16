@@ -18,12 +18,15 @@ macro_rules! auton {
 
 pub struct Autonum {
     h: HashMap<String, Autocount>,
-    temp: Autocount
+    temp: Autocount,
 }
 
 impl Autonum {
     pub fn new() -> Autonum {
-        Autonum { h: HashMap::new(), temp: Autocount::new(0, None) }
+        Autonum {
+            h: HashMap::new(),
+            temp: Autocount::new(0, None),
+        }
     }
 
     pub fn gen(&mut self, name: &str) -> String {
@@ -58,10 +61,10 @@ pub struct Autocount {
 
 impl Autocount {
     pub fn new(start: i32, lim: Option<i32>) -> Autocount {
-        Autocount { 
+        Autocount {
             count: start,
             start,
-            lim
+            lim,
         }
     }
 

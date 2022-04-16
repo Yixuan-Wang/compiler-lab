@@ -30,13 +30,17 @@ impl Allocate for ir::Type {
 impl Allocate for ir::entities::ValueData {
     /// 将所有的值 spill 到栈上
     fn allocate(&self) -> i32 {
-        use ir::{ValueKind::*, TypeKind::*};
+        use ir::{TypeKind::*, ValueKind::*};
         match self.kind() {
             Binary(_) | Call(_) | GetElemPtr(_) => self.ty().allocate(),
             Alloc(_) => {
-                { if let Pointer(t) = self.ty().kind() { t } else { unreachable!() } }
-                .allocate()
+                if let Pointer(t) = self.ty().kind() {
+                    t
+                } else {
+                    unreachable!()
+                }
             }
+            .allocate(),
             _ => 0,
         }
     }

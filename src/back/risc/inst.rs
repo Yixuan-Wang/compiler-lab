@@ -114,7 +114,9 @@ impl RiscInst {
                         Lw(rs, 0, rd),
                         Sub(rd, rd, Reg::T(0)),
                     ]
-                } else { vec![self] }
+                } else {
+                    vec![self]
+                }
             }
             Sw(rs2, of, rs1) => {
                 if of > MAX_IMM {
@@ -124,17 +126,18 @@ impl RiscInst {
                         Lw(rs2, 0, rs1),
                         Sub(rs1, rs1, Reg::T(0)),
                     ]
-                } else { vec![self] }
+                } else {
+                    vec![self]
+                }
             }
             Addi(rd, rs, imm) => {
                 if imm > MAX_IMM {
-                    vec![
-                        Li(Reg::T(0), imm),
-                        Add(rd, rs, Reg::T(0)),
-                    ]
-                } else { vec![self] }
+                    vec![Li(Reg::T(0), imm), Add(rd, rs, Reg::T(0))]
+                } else {
+                    vec![self]
+                }
             }
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
 }

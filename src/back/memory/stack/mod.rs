@@ -6,13 +6,13 @@ pub use frame::*;
 use koopa::ir;
 
 pub struct StackMap {
-    stack: HashMap<ir::Function, FrameMap>
+    stack: HashMap<ir::Function, FrameMap>,
 }
 
 impl StackMap {
     pub fn new() -> StackMap {
         StackMap {
-            stack: HashMap::new()
+            stack: HashMap::new(),
         }
     }
 

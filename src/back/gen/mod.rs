@@ -2,9 +2,9 @@ use super::context::Context;
 use super::risc;
 use koopa::ir;
 
-use crate::WrapProgram;
 use crate::back::risc::RiscLabel;
 use crate::frame;
+use crate::WrapProgram;
 
 mod to_reg;
 use to_reg::ToReg;
@@ -102,7 +102,13 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 let (reg, inst) = s.value().to_reg(ctx, None);
                 v.extend(inst);
                 let dest = s.dest();
-                v.push(Inst::Com(format!("store ({}, {:?}) ({}, {:?})", value_data.ty(), value_data.kind(), ctx.value(s.dest()).ty(), ctx.value(s.dest()).kind())));
+                v.push(Inst::Com(format!(
+                    "store ({}, {:?}) ({}, {:?})",
+                    value_data.ty(),
+                    value_data.kind(),
+                    ctx.value(s.dest()).ty(),
+                    ctx.value(s.dest()).kind()
+                )));
                 match ctx.value(dest).kind() {
                     Alloc(_) => {
                         if !dest.is_global() {
@@ -123,12 +129,11 @@ impl<'a> Generate<'a> for ir::entities::Value {
                         } */
                         v.push(Inst::Sw(reg, 0, Reg::T(0)));
                     }
-                    _ => unimplemented!("{:?}", ctx.value(dest).kind())
-                    // mut ptr @ TypeKind::Pointer(_) => {
-                    //     assert!(!dest.is_global());
-                    //     
-                    // }
-                    // _ => unimplemented!("store {}", ctx.value(dest).ty().kind())
+                    _ => unimplemented!("{:?}", ctx.value(dest).kind()), // mut ptr @ TypeKind::Pointer(_) => {
+                                                                         //     assert!(!dest.is_global());
+                                                                         //
+                                                                         // }
+                                                                         // _ => unimplemented!("store {}", ctx.value(dest).ty().kind())
                 }
                 v
             }
@@ -160,7 +165,10 @@ impl<'a> Generate<'a> for ir::entities::Value {
                     let (reg, insts) = val.to_reg(ctx, None);
                     v.extend(insts);
                     if i >= 8 {
-                        v.extend(Inst::Sw(reg, frame!(ctx).get(Slot(i.try_into().unwrap())), Reg::Sp).expand_imm())
+                        v.extend(
+                            Inst::Sw(reg, frame!(ctx).get(Slot(i.try_into().unwrap())), Reg::Sp)
+                                .expand_imm(),
+                        )
                     } else {
                         v.push(Inst::Mv(Reg::A(i.try_into().unwrap()), reg))
                     };
@@ -172,16 +180,20 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 v
             }
             FuncArgRef(_) => vec![],
-            // getelemptr ptr index 
+            // getelemptr ptr index
             // where ptr: *[T; N], index: i32
             //       getelemptr *T
             // ptr + index * sizeof(T)
             GetElemPtr(p) => {
                 use ir::TypeKind;
                 let mut v: Vec<Inst> = vec![];
-                v.push(Inst::Com(format!("get_elem_ptr {:?} {:?}", ctx.value(p.src()).name(), ctx.value(p.index()).name())));
+                v.push(Inst::Com(format!(
+                    "get_elem_ptr {:?} {:?}",
+                    ctx.value(p.src()).name(),
+                    ctx.value(p.index()).name()
+                )));
                 // let sreg = ctx.reg_map_mut().appoint_temp_reg(*self);
-                
+
                 // ptr -> sreg
                 // if p.src().is_global() {
                 //     let label = RiscLabel::strip(ctx.value(p.src()).name().clone().unwrap());
@@ -198,10 +210,18 @@ impl<'a> Generate<'a> for ir::entities::Value {
                     // t: T <- ta: [T; N]
                     if let TypeKind::Array(t, _) = {
                         // ta: [T; N] <- ptr: *[T; N]
-                        if let TypeKind::Pointer(ta) = ctx.value(p.src()).ty().kind() { ta }
-                        else { unreachable!() }
-                    }.kind() { t }
-                    else { unreachable!() }
+                        if let TypeKind::Pointer(ta) = ctx.value(p.src()).ty().kind() {
+                            ta
+                        } else {
+                            unreachable!()
+                        }
+                    }
+                    .kind()
+                    {
+                        t
+                    } else {
+                        unreachable!()
+                    }
                 }
                 .size();
 
@@ -214,7 +234,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                     Inst::Li(Reg::T(0), t_size.try_into().unwrap()), // t0 <- sizeof(T)
                     Inst::Com(format!("END SIZE")),
                     Inst::Mul(Reg::T(0), Reg::T(0), ireg), // t0 <- sizeof(T) @ t0 * index @ ireg
-                    Inst::Add(sreg, Reg::T(0), sreg), // sreg <- product @ t0 + ptr @ sreg
+                    Inst::Add(sreg, Reg::T(0), sreg),      // sreg <- product @ t0 + ptr @ sreg
                 ]);
 
                 // SPILL

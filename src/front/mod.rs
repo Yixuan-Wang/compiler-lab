@@ -11,10 +11,7 @@ lalrpop_mod! {
     pub parser
 }
 
-use koopa::{
-    back::KoopaGenerator,
-    ir::Program,
-};
+use koopa::{back::KoopaGenerator, ir::Program};
 use std::{
     error::Error,
     io,
@@ -22,9 +19,11 @@ use std::{
     result,
 };
 
-use self::{symtab::{FuncTab, ValTab}, gen::prelude::with_prelude};
 use self::declare::Declare;
-
+use self::{
+    gen::prelude::with_prelude,
+    symtab::{FuncTab, ValTab},
+};
 
 pub fn into_ast(source: String) -> Vec<ast::Item> {
     let parser = parser::CompUnitParser::new();

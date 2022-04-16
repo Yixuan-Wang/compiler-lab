@@ -1,6 +1,6 @@
-use std::{error::Error, cell::RefCell};
+use std::{cell::RefCell, error::Error};
 
-use crate::{front::Ir, WrapProgram, util::merge::merge};
+use crate::{front::Ir, util::merge::merge, WrapProgram};
 
 mod allocate;
 mod context;
@@ -8,9 +8,16 @@ mod gen;
 mod memory;
 mod risc;
 
+use self::{
+    gen::Generate,
+    memory::stack::StackMap,
+    risc::{RiscDirc as Dirc, RiscItem as Item, RiscLabel},
+};
 use context::Context;
-use koopa::{ir::{self, values::GlobalAlloc}, front::ast::Aggregate};
-use self::{gen::Generate, memory::stack::StackMap, risc::{RiscItem as Item, RiscLabel, RiscDirc as Dirc}};
+use koopa::{
+    front::ast::Aggregate,
+    ir::{self, values::GlobalAlloc},
+};
 
 pub struct Target(pub String);
 
@@ -23,58 +30,71 @@ impl TryFrom<Ir> for Target {
     type Error = Box<dyn Error>;
     fn try_from(ir: Ir) -> Result<Self, Self::Error> {
         koopa::ir::Type::set_ptr_size(4);
-        
+
         let mut program = ir.0;
         let mut stack = RefCell::new(StackMap::new());
         let mut code = vec![];
-        
+
         let data = program.borrow_values();
         code.extend(
-            data
-            .iter()
-            .filter(|(_, d)| matches!(d.kind(), koopa::ir::ValueKind::GlobalAlloc(_)))
-            .flat_map(|(h, d)| {
-                use koopa::ir::ValueKind::*;
-                let a = if let GlobalAlloc(a) = d.kind() { a } else { unreachable!() };
-                let label = RiscLabel::strip(d.name().clone().unwrap());
-                let mut v = vec![
-                    Item::Dirc(Dirc::Data),
-                    Item::Dirc(Dirc::Global(label.clone())),
-                    Item::Label(label),
-                ];
-                if matches!(program.borrow_value(a.init()).kind(), Aggregate(_)) {
-                    let stack = vec![];
-                    let agg = write_aggregate(a.init(), stack, &program);
-                    dbg!(&agg);
-                    v.extend(
-                        merge(
-                            agg.into_iter(),
-                            |d| {
-                                if let Dirc::Zero(z) = d { Some(*z) }
-                                else { None }
-                            },
-                            |acc, step| acc + step,
-                            |acc| Dirc::Zero(acc)
+            data.iter()
+                .filter(|(_, d)| matches!(d.kind(), koopa::ir::ValueKind::GlobalAlloc(_)))
+                .flat_map(|(h, d)| {
+                    use koopa::ir::ValueKind::*;
+                    let a = if let GlobalAlloc(a) = d.kind() {
+                        a
+                    } else {
+                        unreachable!()
+                    };
+                    let label = RiscLabel::strip(d.name().clone().unwrap());
+                    let mut v = vec![
+                        Item::Dirc(Dirc::Data),
+                        Item::Dirc(Dirc::Global(label.clone())),
+                        Item::Label(label),
+                    ];
+                    if matches!(program.borrow_value(a.init()).kind(), Aggregate(_)) {
+                        let stack = vec![];
+                        let agg = write_aggregate(a.init(), stack, &program);
+                        dbg!(&agg);
+                        v.extend(
+                            merge(
+                                agg.into_iter(),
+                                |d| {
+                                    if let Dirc::Zero(z) = d {
+                                        Some(*z)
+                                    } else {
+                                        None
+                                    }
+                                },
+                                |acc, step| acc + step,
+                                |acc| Dirc::Zero(acc),
+                            )
+                            .map(Item::Dirc),
                         )
-                        .map(Item::Dirc)
-                    )
-                } else {
-                    v.push(match program.borrow_value(a.init()).kind() {
-                        Integer(i) => Item::Dirc(Dirc::Word(i.value())),
-                        Undef(_) | ZeroInit(_) => Item::Dirc(Dirc::Zero(program.borrow_value(a.init()).ty().size().try_into().unwrap())),
-                        _ => unreachable!()
-                    });
-                }
-                v.push(Item::Blank);
-                v
-            })
+                    } else {
+                        v.push(match program.borrow_value(a.init()).kind() {
+                            Integer(i) => Item::Dirc(Dirc::Word(i.value())),
+                            Undef(_) | ZeroInit(_) => Item::Dirc(Dirc::Zero(
+                                program
+                                    .borrow_value(a.init())
+                                    .ty()
+                                    .size()
+                                    .try_into()
+                                    .unwrap(),
+                            )),
+                            _ => unreachable!(),
+                        });
+                    }
+                    v.push(Item::Blank);
+                    v
+                }),
         );
         drop(data);
 
         let funcs = program.func_layout().to_vec();
         code.extend(funcs.into_iter().flat_map(|func| {
             if program.func(func).layout().entry_bb().is_none() {
-                return vec![]
+                return vec![];
             }
 
             let ctx = Context::new(&mut program, &mut stack, func);
@@ -104,9 +124,7 @@ impl TryFrom<Ir> for Target {
         }));
 
         Ok(Target(
-            code.iter()
-                .map(|i| i.to_string())
-                .collect::<String>()
+            code.iter().map(|i| i.to_string()).collect::<String>(),
         ))
     }
 }
@@ -121,7 +139,10 @@ fn write_aggregate(val: ir::Value, mut stack: Vec<Dirc>, program: &ir::Program) 
 
     match data.kind() {
         Aggregate(a) => {
-            stack = a.elems().iter().fold(stack, |acc, elem| write_aggregate(*elem, acc, program));
+            stack = a
+                .elems()
+                .iter()
+                .fold(stack, |acc, elem| write_aggregate(*elem, acc, program));
         }
         Integer(i) => {
             stack.push(Dirc::Word(i.value()));
@@ -129,7 +150,7 @@ fn write_aggregate(val: ir::Value, mut stack: Vec<Dirc>, program: &ir::Program) 
         ZeroInit(_) | Undef(_) => {
             stack.push(Dirc::Zero(data.ty().size().try_into().unwrap()));
         }
-        _ => unreachable!("{:?}\n", data.kind())
+        _ => unreachable!("{:?}\n", data.kind()),
     };
     stack
 }

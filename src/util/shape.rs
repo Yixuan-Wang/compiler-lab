@@ -1,6 +1,6 @@
-use std::{ops::Deref, num::TryFromIntError, iter::zip};
 use super::ir_type::to_array_ty;
 use koopa::ir;
+use std::{iter::zip, num::TryFromIntError, ops::Deref};
 
 #[derive(Debug, Clone)]
 pub struct Shape(Vec<i32>, Vec<i32>, i32);
@@ -28,7 +28,10 @@ impl Shape {
     }
 
     pub fn ty(&self, dim_r: usize) -> ir::Type {
-        let x = &mut self.0[dim_r..].iter().rev().map(|i| (*i).try_into().unwrap());
+        let x = &mut self.0[dim_r..]
+            .iter()
+            .rev()
+            .map(|i| (*i).try_into().unwrap());
         to_array_ty(x)
     }
 
@@ -84,14 +87,12 @@ impl TryFrom<&ir::TypeKind> for Shape {
     type Error = TryFromIntError;
 
     fn try_from(kind: &ir::TypeKind) -> Result<Self, Self::Error> {
-        Ok(
-            Shape::new(
-                TypeKindIter(kind)
+        Ok(Shape::new(
+            TypeKindIter(kind)
                 .into_iter()
                 .map(|u| u.try_into())
-                .collect::<Result<Vec<_>,_>>()?
-            )
-        )
+                .collect::<Result<Vec<_>, _>>()?,
+        ))
     }
 }
 

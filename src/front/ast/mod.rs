@@ -1,6 +1,9 @@
-use koopa::ir;
-use std::{ops::{Deref, DerefMut}, fmt::Display};
 use super::{gen::eval::Eval, symtab::FetchVal};
+use koopa::ir;
+use std::{
+    fmt::Display,
+    ops::{Deref, DerefMut},
+};
 
 #[derive(Debug)]
 pub struct Item {
@@ -64,7 +67,9 @@ impl From<&Ty> for ir::Type {
 
 impl Ty {
     pub fn to<'a, C>(&self, ctx: &'a C) -> ir::Type
-    where C: WrapProgram + FetchVal<'a> {
+    where
+        C: WrapProgram + FetchVal<'a>,
+    {
         match self {
             Ty::Int => ty!(i32),
             Ty::Void => ty!(()),
@@ -150,31 +155,24 @@ pub enum Def {
 impl Decl {
     pub fn from(def: Def, kind: SymKind) -> Self {
         match def {
-            Def::Value(ident, exp) => {
-                Decl {
-                    ident,
-                    init: exp.map(Init::Exp),
-                    ty: Ty::Int,
-                    kind,
-                }
+            Def::Value(ident, exp) => Decl {
+                ident,
+                init: exp.map(Init::Exp),
+                ty: Ty::Int,
+                kind,
             },
-            Def::Array(ident, dim, init) => {
-                Decl {
-                    ident,
-                    init: init.map(Init::Initializer),
-                    ty: Ty::Array(dim),
-                    kind,
-                }
-            }
+            Def::Array(ident, dim, init) => Decl {
+                ident,
+                init: init.map(Init::Initializer),
+                ty: Ty::Array(dim),
+                kind,
+            },
         }
     }
 }
 
 #[derive(Debug)]
-pub struct LVal (
-    pub String,
-    pub Vec<Exp>,
-);
+pub struct LVal(pub String, pub Vec<Exp>);
 
 #[derive(Debug)]
 pub enum AsLVal {
@@ -185,7 +183,10 @@ pub enum AsLVal {
 impl Display for LVal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", &self.0)?;
-        self.1.iter().map(|e| write!(f, "[{}]", e)).collect::<Result<Vec<_>,_>>()?;
+        self.1
+            .iter()
+            .map(|e| write!(f, "[{}]", e))
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(())
     }
 }
@@ -196,7 +197,7 @@ pub struct Param {
     pub ty: Ty,
 }
 
-use crate::{ty, WrapProgram, util::shape::Shape};
+use crate::{ty, util::shape::Shape, WrapProgram};
 mod exp;
 pub use exp::*;
 

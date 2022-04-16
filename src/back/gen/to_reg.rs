@@ -3,12 +3,12 @@ use koopa::ir::Value;
 use crate::back::{
     risc::{
         RiscInst::{self as Inst, *},
-        RiscReg as Reg, RiscLabel,
+        RiscLabel, RiscReg as Reg,
     },
     Context,
 };
-use crate::WrapProgram;
 use crate::frame;
+use crate::WrapProgram;
 
 /// 将一个值存入寄存器，并生成所需的 RISC-V 指令
 pub trait ToReg<'a> {
@@ -55,7 +55,11 @@ impl<'a> ToReg<'a> for Value {
             //       load: T
             Load(l) => {
                 let mut v = vec![];
-                v.push(Com(format!("load {:?} {:?}", value_data.name(), ctx.value(l.src()).kind())));
+                v.push(Com(format!(
+                    "load {:?} {:?}",
+                    value_data.name(),
+                    ctx.value(l.src()).kind()
+                )));
 
                 // ptr kind
                 let (_, ptr_insts) = l.src().to_reg(ctx, Some(reg));
@@ -71,12 +75,7 @@ impl<'a> ToReg<'a> for Value {
                         Inst::Lw(reg, frame!(ctx).get(*self), Reg::Sp).expand_imm(),
                     )
                 } else {
-                    (
-                        reg,
-                        vec![
-                            Inst::Mv(reg, Reg::A(i.try_into().unwrap())),
-                        ]
-                    )
+                    (reg, vec![Inst::Mv(reg, Reg::A(i.try_into().unwrap()))])
                 }
             }
             GetElemPtr(_) => {

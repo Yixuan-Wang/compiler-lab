@@ -17,13 +17,15 @@ impl Display for RiscLabel {
 
 impl RiscLabel {
     pub fn new<T>(string: T) -> RiscLabel
-    where T: ToString
+    where
+        T: ToString,
     {
         RiscLabel(string.to_string())
     }
 
     pub fn strip<T>(string: T) -> RiscLabel
-    where T: ToString
+    where
+        T: ToString,
     {
         let mut string = string.to_string();
         string.remove(0);
@@ -31,7 +33,8 @@ impl RiscLabel {
     }
 
     pub fn with_prefix<T>(self, prefix: T) -> RiscLabel
-    where T: Display
+    where
+        T: Display,
     {
         RiscLabel(format!("{}_{}", prefix, self.0))
     }

@@ -4,7 +4,7 @@ use koopa::ir::{self, builder_traits::*};
 
 use crate::{util::autonum::Autonum, WrapProgram};
 
-use super::symtab::{Symtab, FuncTab, ValTab, FetchVal};
+use super::symtab::{FetchVal, FuncTab, Symtab, ValTab};
 
 /// Context is a high-level [`koopa::ir::Program`] wrapper around a [`koopa::ir::Function`]
 /// with its symbol table [`Table`].
@@ -173,7 +173,7 @@ impl<'a: 'f, 'f> Context<'a> {
         }
         val
     }
-    
+
     pub fn add_mid_value<F>(&mut self, builder_fn: F) -> ir::Value
     where
         F: FnOnce(ir::builder::LocalBuilder) -> ir::Value,
@@ -301,10 +301,7 @@ impl<'a> FetchVal<'a> for GlobalContext<'a> {
 }
 
 impl<'a> GlobalContext<'a> {
-    pub fn new(
-        program: &'a mut ir::Program,
-        global_val_tab: &'a mut ValTab,
-    ) -> GlobalContext<'a> {
+    pub fn new(program: &'a mut ir::Program, global_val_tab: &'a mut ValTab) -> GlobalContext<'a> {
         GlobalContext {
             program,
             global: global_val_tab,
@@ -323,8 +320,7 @@ impl<'a> GlobalContext<'a> {
     }
 
     pub fn register_global_value(&mut self, name: &str, value: ir::Value) {
-        self.global
-            .insert(name.to_string(), value);
+        self.global.insert(name.to_string(), value);
     }
 }
 

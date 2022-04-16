@@ -1,7 +1,7 @@
 use koopa::ir::{Type, Value};
 
 use crate::util::shape::Shape;
-use crate::{WrapProgram, ty};
+use crate::{ty, WrapProgram};
 
 use crate::front::context::AddPlainValue;
 use crate::front::{ast::*, symtab::FetchVal};
@@ -16,13 +16,15 @@ macro_rules! eval {
 }
 
 pub trait Eval<'f, C, T>
-where C: WrapProgram + FetchVal<'f>
+where
+    C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<T>;
 }
 
 impl<'f, C> Eval<'f, C, i32> for Exp
-where C: WrapProgram + FetchVal<'f>
+where
+    C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<i32> {
         self.0.eval(ctx)
@@ -30,7 +32,8 @@ where C: WrapProgram + FetchVal<'f>
 }
 
 impl<'f, C> Eval<'f, C, i32> for LOrExp
-where C: WrapProgram + FetchVal<'f>
+where
+    C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
@@ -43,7 +46,8 @@ where C: WrapProgram + FetchVal<'f>
 }
 
 impl<'f, C> Eval<'f, C, i32> for LAndExp
-where C: WrapProgram + FetchVal<'f>
+where
+    C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
@@ -56,7 +60,8 @@ where C: WrapProgram + FetchVal<'f>
 }
 
 impl<'f, C> Eval<'f, C, i32> for EqExp
-where C: WrapProgram + FetchVal<'f>
+where
+    C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
@@ -70,7 +75,8 @@ where C: WrapProgram + FetchVal<'f>
 }
 
 impl<'f, C> Eval<'f, C, i32> for RelExp
-where C: WrapProgram + FetchVal<'f>
+where
+    C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
@@ -86,7 +92,8 @@ where C: WrapProgram + FetchVal<'f>
 }
 
 impl<'f, C> Eval<'f, C, i32> for AddExp
-where C: WrapProgram + FetchVal<'f>
+where
+    C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
@@ -100,7 +107,8 @@ where C: WrapProgram + FetchVal<'f>
 }
 
 impl<'f, C> Eval<'f, C, i32> for MulExp
-where C: WrapProgram + FetchVal<'f>
+where
+    C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
@@ -115,7 +123,8 @@ where C: WrapProgram + FetchVal<'f>
 }
 
 impl<'f, C> Eval<'f, C, i32> for UnaryExp
-where C: WrapProgram + FetchVal<'f>
+where
+    C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
@@ -130,7 +139,8 @@ where C: WrapProgram + FetchVal<'f>
 }
 
 impl<'f, C> Eval<'f, C, i32> for PrimaryExp
-where C: WrapProgram + FetchVal<'f>
+where
+    C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<i32> {
         match self {
@@ -142,11 +152,13 @@ where C: WrapProgram + FetchVal<'f>
 }
 
 impl<'f, C> Eval<'f, C, i32> for LVal
-where C: WrapProgram + FetchVal<'f>
+where
+    C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<i32> {
         fn eval<'f, C>(o: Option<Value>, ctx: &'f C, indices: &Vec<i32>) -> Option<i32>
-        where C: WrapProgram + FetchVal<'f>
+        where
+            C: WrapProgram + FetchVal<'f>,
         {
             use koopa::ir::entities::ValueKind::*;
             match o {
@@ -161,7 +173,9 @@ where C: WrapProgram + FetchVal<'f>
                     GlobalAlloc(a) => eval(Some(a.init()), ctx, indices),
                     _ => None,
                 },
-                None => panic!("SemanticsError[UndefinedSymbol]: A symbol is used before definition."),
+                None => {
+                    panic!("SemanticsError[UndefinedSymbol]: A symbol is used before definition.")
+                }
             }
         }
         let indices = (&self.1).eval(ctx).unwrap();
@@ -170,13 +184,14 @@ where C: WrapProgram + FetchVal<'f>
             None => panic!(
                 "SemanticsError[UndefinedSymbol]: '{}' is used before definition.",
                 &self.0
-            )
+            ),
         }
     }
 }
 
 impl<'f, C> Eval<'f, C, Vec<i32>> for &Vec<Exp>
-where C: WrapProgram + FetchVal<'f>
+where
+    C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<Vec<i32>> {
         let shape: Vec<_> = self.iter().map(|e| e.eval(ctx)).collect();
@@ -189,7 +204,8 @@ where C: WrapProgram + FetchVal<'f>
 }
 
 impl<'f, C> Eval<'f, C, EvaledAggregate> for ShapedInitializer<'_>
-where C: WrapProgram + FetchVal<'f>
+where
+    C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<EvaledAggregate> {
         let array = self.1.build(self.0);
@@ -197,8 +213,9 @@ where C: WrapProgram + FetchVal<'f>
     }
 }
 
-impl<'f, C> Eval<'f, C, EvaledAggregate> for RawAggregate<'_> 
-where C: WrapProgram + FetchVal<'f>
+impl<'f, C> Eval<'f, C, EvaledAggregate> for RawAggregate<'_>
+where
+    C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<EvaledAggregate> {
         match self {
@@ -207,22 +224,30 @@ where C: WrapProgram + FetchVal<'f>
                 Some(EvaledAggregate::Agg(v?))
             }
             RawAggregate::Value(e) => Some(EvaledAggregate::Value(e.eval(ctx)?)),
-            RawAggregate::ZeroInitOne(u)
-                | RawAggregate::ZeroInitWhole(u)
-                => Some(EvaledAggregate::ZeroInit(*u)),
+            RawAggregate::ZeroInitOne(u) | RawAggregate::ZeroInitWhole(u) => {
+                Some(EvaledAggregate::ZeroInit(*u))
+            }
         }
     }
 }
 
-pub fn generate_evaled_aggregate<'a, 'f: 'a, 'b: 'a, C>(agg: &'a EvaledAggregate, ctx: &'f mut C, tys: &'b Vec<Type>) -> Value
-where C: AddPlainValue
+pub fn generate_evaled_aggregate<'a, 'f: 'a, 'b: 'a, C>(
+    agg: &'a EvaledAggregate,
+    ctx: &'f mut C,
+    tys: &'b Vec<Type>,
+) -> Value
+where
+    C: AddPlainValue,
 {
     use EvaledAggregate::*;
     match agg {
         Agg(v) => {
-            let v = v.iter().map(|a| generate_evaled_aggregate(a, ctx, tys)).collect();
+            let v = v
+                .iter()
+                .map(|a| generate_evaled_aggregate(a, ctx, tys))
+                .collect();
             ctx.add_plain_value_aggregate(v)
-        },
+        }
         Value(v) => ctx.add_plain_value_integer(*v),
         ZeroInit(u) => ctx.add_plain_value_zeroinit(tys[*u].clone()),
     }

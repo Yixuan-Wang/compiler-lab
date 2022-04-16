@@ -24,11 +24,9 @@ macro_rules! ty {
 }
 
 pub fn to_array_ty(iter: impl Iterator<Item = usize>) -> koopa::ir::types::Type {
-    iter
-    .fold(ty!(i32), |ty, d: usize| koopa::ir::Type::get_array(ty, d))
+    iter.fold(ty!(i32), |ty, d: usize| koopa::ir::Type::get_array(ty, d))
 }
 
 pub fn ref_to_array_ty<'a>(iter: impl Iterator<Item = &'a usize>) -> koopa::ir::types::Type {
-    iter
-    .fold(ty!(i32), |ty, d: &usize| koopa::ir::Type::get_array(ty, *d))
+    iter.fold(ty!(i32), |ty, d: &usize| koopa::ir::Type::get_array(ty, *d))
 }

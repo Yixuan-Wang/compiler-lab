@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use koopa::ir;
 
-use crate::back::{risc::RiscReg as Reg, allocate::Allocate};
+use crate::back::{allocate::Allocate, risc::RiscReg as Reg};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum FrameObj {
@@ -67,13 +67,14 @@ impl FrameMap {
     pub fn insert_high<K, V>(&mut self, k: K, v: &V)
     where
         K: Into<FrameObj>,
-        V: Allocate
+        V: Allocate,
     {
         let size = v.allocate();
         if size > 0 {
             self.size_aligned = None;
             self.size_high += size;
-            self.map.insert(k.into(), FrameAddress::High(self.size_high));
+            self.map
+                .insert(k.into(), FrameAddress::High(self.size_high));
         }
     }
 
@@ -81,7 +82,7 @@ impl FrameMap {
     pub fn insert_low<K, V>(&mut self, k: K, v: &V)
     where
         K: Into<FrameObj>,
-        V: Allocate
+        V: Allocate,
     {
         let size = v.allocate();
         if size > 0 {
@@ -95,17 +96,19 @@ impl FrameMap {
     pub fn insert_prev<K, V>(&mut self, k: K, v: &V)
     where
         K: Into<FrameObj>,
-        V: Allocate
+        V: Allocate,
     {
         let size = v.allocate();
         if size > 0 {
-            self.map.insert(k.into(), FrameAddress::Prev(self.size_prev));
+            self.map
+                .insert(k.into(), FrameAddress::Prev(self.size_prev));
             self.size_prev += size;
         }
     }
 
     pub fn get<K>(&self, k: K) -> i32
-    where K: Into<FrameObj> + std::fmt::Debug
+    where
+        K: Into<FrameObj> + std::fmt::Debug,
     {
         use FrameAddress::*;
         match self.map.get(&k.into()).unwrap() {

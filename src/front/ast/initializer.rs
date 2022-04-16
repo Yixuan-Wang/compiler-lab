@@ -1,11 +1,14 @@
-use std::{iter, fmt::{Display, Debug}};
+use std::{
+    fmt::{Debug, Display},
+    iter,
+};
 
 use crate::{front::ast::exp::Exp, util::shape::Shape};
 
 #[derive(Debug)]
 pub enum Initializer {
     List(Vec<Initializer>),
-    Value(Exp)
+    Value(Exp),
 }
 
 #[derive(Clone)]
@@ -27,15 +30,13 @@ impl Debug for RawAggregate<'_> {
     }
 }
 
-pub enum EvaledAggregate
-{
+pub enum EvaledAggregate {
     Agg(Vec<EvaledAggregate>),
     ZeroInit(usize),
     Value(i32),
 }
 
-pub enum GeneratedAggregate
-{
+pub enum GeneratedAggregate {
     ZeroInit(usize),
     Value(i32),
 }
@@ -45,10 +46,17 @@ impl<'a> Display for RawAggregate<'a> {
         match self {
             RawAggregate::Agg(v) => {
                 write!(f, "{{")?;
-                let w: Result<Vec<_>, _> = v.iter().enumerate().map(|(i, a)| {
-                    if i == 0 { write!(f, "{a}") }
-                    else { write!(f, ", {a}") }
-                }).collect();
+                let w: Result<Vec<_>, _> = v
+                    .iter()
+                    .enumerate()
+                    .map(|(i, a)| {
+                        if i == 0 {
+                            write!(f, "{a}")
+                        } else {
+                            write!(f, ", {a}")
+                        }
+                    })
+                    .collect();
                 w?;
                 write!(f, "}}")?;
             }
@@ -66,7 +74,7 @@ impl Initializer {
     pub fn build<'a, 'b>(&'a self, shape: &'b Shape) -> RawAggregate<'a> {
         let mut h: InitializerStack<'a, 'b> = InitializerStack::new(&shape);
         // let mut dest = vec![];
-        self.fill(&mut h, );
+        self.fill(&mut h);
         h.try_carry(0);
         assert_eq!(h.stack.len(), 1);
         let x = h.stack.pop().unwrap();
@@ -74,7 +82,10 @@ impl Initializer {
         x
     }
 
-    fn fill<'a: 'c, 'b, 'c>(&'a self, h: &'c mut InitializerStack<'a, 'b>/* , d: &'b mut Vec<Option<&'a Exp>> */) {
+    fn fill<'a: 'c, 'b, 'c>(
+        &'a self,
+        h: &'c mut InitializerStack<'a, 'b>, /* , d: &'b mut Vec<Option<&'a Exp>> */
+    ) {
         match &self {
             Initializer::Value(e) => {
                 if h.progress.len() < h.carrying.len() {
@@ -105,7 +116,10 @@ impl Initializer {
 
                 // println!("108 {:?} @ {:?}", &h.stack, &h.progress);
 
-                if v.is_empty() && (matches!(h.status, InitializerState::Fill) || h.progress.len() > h.carrying.len()) {
+                if v.is_empty()
+                    && (matches!(h.status, InitializerState::Fill)
+                        || h.progress.len() > h.carrying.len())
+                {
                     if !matches!(h.status, InitializerState::Fill) {
                         h.progress.pop();
                     }
@@ -117,7 +131,7 @@ impl Initializer {
                         h.status = InitializerState::Pad;
                     }
                 }
- 
+
                 if prev_status != h.status {
                     h.status = InitializerState::Pad;
                 }
@@ -159,12 +173,12 @@ struct InitializerStack<'a, 'b> {
 
 impl<'a, 'b> InitializerStack<'a, 'b> {
     fn new(shape: &'b Shape) -> InitializerStack<'a, 'b> {
-        InitializerStack { 
+        InitializerStack {
             status: InitializerState::Pad,
             stack: vec![],
             progress: vec![],
-            carrying: shape,//carrying(shape),
-            // shape: shape.clone()
+            carrying: shape, //carrying(shape),
+                             // shape: shape.clone()
         }
     }
 
@@ -173,9 +187,12 @@ impl<'a, 'b> InitializerStack<'a, 'b> {
             let pad = self.pad();
             let pad_u: usize = pad.try_into().unwrap();
             if self.progress.last() != Some(&0) {
-                self.stack.extend(iter::repeat(RawAggregate::ZeroInitOne(self.progress.len())).take(pad_u));
+                self.stack.extend(
+                    iter::repeat(RawAggregate::ZeroInitOne(self.progress.len())).take(pad_u),
+                );
             } else {
-                self.stack.push(RawAggregate::ZeroInitWhole(self.progress.len() - 1))
+                self.stack
+                    .push(RawAggregate::ZeroInitWhole(self.progress.len() - 1))
             }
             *self.progress.last_mut().unwrap() += pad;
         }
@@ -191,21 +208,26 @@ impl<'a, 'b> InitializerStack<'a, 'b> {
         let level = self.progress.len() - 1;
         let is_zero_init_whole = if let Some(RawAggregate::ZeroInitWhole(u)) = self.stack.last() {
             level == *u
-        } else { false };
+        } else {
+            false
+        };
         let aggregate = if is_zero_init_whole {
             self.stack.pop();
             RawAggregate::ZeroInitWhole(self.progress.len() - 1)
         } else {
-            let carry_len: usize = (*self.carrying.get(self.progress.len() - 1).unwrap()).try_into().unwrap();
-            RawAggregate::Agg(self.stack.drain(self.stack.len()-carry_len..).collect())
+            let carry_len: usize = (*self.carrying.get(self.progress.len() - 1).unwrap())
+                .try_into()
+                .unwrap();
+            RawAggregate::Agg(self.stack.drain(self.stack.len() - carry_len..).collect())
         };
         self.progress.pop();
         self.stack.push(aggregate);
-        self.progress.last_mut().and_then(|x| Some(*x += 1));//p));
+        self.progress.last_mut().and_then(|x| Some(*x += 1)); //p));
     }
 
     fn is_not_full(&self) -> bool {
-        !self.progress.is_empty() && self.progress.last() < self.carrying.get(self.progress.len() - 1)
+        !self.progress.is_empty()
+            && self.progress.last() < self.carrying.get(self.progress.len() - 1)
     }
 
     fn should_pad(&self, enter_level: usize) -> bool {
@@ -217,6 +239,7 @@ impl<'a, 'b> InitializerStack<'a, 'b> {
     }
 
     fn should_carry(&self) -> bool {
-        !self.progress.is_empty() && self.progress.last() == self.carrying.get(self.progress.len() - 1)
+        !self.progress.is_empty()
+            && self.progress.last() == self.carrying.get(self.progress.len() - 1)
     }
 }

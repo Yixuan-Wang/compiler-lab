@@ -1,11 +1,11 @@
 use std::cell::{Ref, RefCell, RefMut};
 
-use crate::{WrapProgram, back::allocate::Allocate};
+use crate::{back::allocate::Allocate, WrapProgram};
 use koopa::ir;
 
 use super::{
-    risc::{RiscInst, RiscReg as Reg, MAX_IMM, RiscLabel},
-    memory::{stack::StackMap, regmap::RegMap},
+    memory::{regmap::RegMap, stack::StackMap},
+    risc::{RiscInst, RiscLabel, RiscReg as Reg, MAX_IMM},
 };
 
 pub struct Context<'a> {
@@ -42,7 +42,11 @@ macro_rules! frame {
 }
 
 impl<'a> Context<'a> {
-    pub fn new(program: &'a mut ir::Program, stack: &'a mut RefCell<StackMap>, func: ir::Function) -> Context<'a> {
+    pub fn new(
+        program: &'a mut ir::Program,
+        stack: &'a mut RefCell<StackMap>,
+        func: ir::Function,
+    ) -> Context<'a> {
         let name = unsafe { program.func(func).name().get_unchecked(1..) }.into();
         Context {
             program,
@@ -99,15 +103,16 @@ impl<'a> Context<'a> {
     }
 
     pub fn label<T>(&self, ir_name: T) -> RiscLabel
-    where T: ToString
+    where
+        T: ToString,
     {
         RiscLabel::strip(ir_name.to_string()).with_prefix(self.name())
     }
 
     pub fn prologue(&self) -> Vec<RiscInst> {
+        use crate::back::memory::FrameObj::Slot;
         use ir::ValueKind;
         use RiscInst::*;
-        use crate::back::memory::FrameObj::Slot;
         let mut v = vec![];
 
         let mut ir_insts: Vec<ir::Value> = vec![];
@@ -148,14 +153,20 @@ impl<'a> Context<'a> {
                 // ? 简单规定所有参数空间都是 4
                 frame!(self._mut).insert_prev(*h, &4);
             } else {
-                self.reg_map_mut().appoint_reg(*h, Reg::A(i.try_into().unwrap()));
+                self.reg_map_mut()
+                    .appoint_reg(*h, Reg::A(i.try_into().unwrap()));
             }
         });
 
         // 分配局部变量
         ir_insts.iter().for_each(|h| {
             let d = self.value(*h);
-            v.push(Com(format!("prologue {:?} {} {}", d.kind(), d.ty().kind(), d.allocate())));
+            v.push(Com(format!(
+                "prologue {:?} {} {}",
+                d.kind(),
+                d.ty().kind(),
+                d.allocate()
+            )));
             frame!(self._mut).insert_high(*h, &d);
         });
 
@@ -164,7 +175,12 @@ impl<'a> Context<'a> {
         // 此处在本栈帧中插入一个指向本栈帧中从底部向上分配的空间
         //   键：一个留待使用的槽，FrameObj::Slot
         //   值：
-        let call_param_count = calls.iter().map(|a| (*a as isize - 7).max(0)).max().unwrap_or(0) * 4;
+        let call_param_count = calls
+            .iter()
+            .map(|a| (*a as isize - 7).max(0))
+            .max()
+            .unwrap_or(0)
+            * 4;
         let call_param_count: i32 = call_param_count.try_into().unwrap();
         for i in 0..call_param_count {
             frame!(self._mut).insert_low(Slot(i + 8), &4);
