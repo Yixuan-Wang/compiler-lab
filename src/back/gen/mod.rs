@@ -94,7 +94,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
             GlobalAlloc(_) => vec![],
             Load(_) => vec![],
             Store(s) => {
-                use ir::TypeKind;
+                
                 let mut v = vec![];
                 if let Undef(_) = ctx.value(s.value()).kind() {
                     return v;
@@ -232,7 +232,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 v.extend([
                     Inst::Com(format!("! SIZE {}", t_size)),
                     Inst::Li(Reg::T(0), t_size.try_into().unwrap()), // t0 <- sizeof(T)
-                    Inst::Com(format!("END SIZE")),
+                    Inst::Com("END SIZE".to_string()),
                     Inst::Mul(Reg::T(0), Reg::T(0), ireg), // t0 <- sizeof(T) @ t0 * index @ ireg
                     Inst::Add(sreg, Reg::T(0), sreg),      // sreg <- product @ t0 + ptr @ sreg
                 ]);
@@ -240,7 +240,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 // SPILL
                 let offset = frame!(ctx).get(*self);
                 v.extend(Inst::Sw(sreg, offset, Reg::Sp).expand_imm());
-                v.push(Inst::Com(format!("end get_elem_ptr")));
+                v.push(Inst::Com("end get_elem_ptr".to_string()));
                 v
             }
             _ => todo!("{:#?}", value_data.kind()),

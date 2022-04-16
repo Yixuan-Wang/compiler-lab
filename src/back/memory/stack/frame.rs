@@ -11,15 +11,15 @@ pub enum FrameObj {
     Slot(i32),
 }
 
-impl Into<FrameObj> for ir::Value {
-    fn into(self) -> FrameObj {
-        FrameObj::Val(self)
+impl From<ir::Value> for FrameObj {
+    fn from(v: ir::Value) -> Self {
+        FrameObj::Val(v)
     }
 }
 
-impl Into<FrameObj> for Reg {
-    fn into(self) -> FrameObj {
-        FrameObj::Reg(self)
+impl From<Reg> for FrameObj {
+    fn from(r: Reg) -> Self {
+        FrameObj::Reg(r)
     }
 }
 

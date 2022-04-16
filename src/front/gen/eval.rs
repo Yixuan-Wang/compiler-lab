@@ -1,7 +1,7 @@
 use koopa::ir::{Type, Value};
 
-use crate::util::shape::Shape;
-use crate::{ty, WrapProgram};
+
+use crate::{WrapProgram};
 
 use crate::front::context::AddPlainValue;
 use crate::front::{ast::*, symtab::FetchVal};
@@ -156,7 +156,7 @@ where
     C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<i32> {
-        fn eval<'f, C>(o: Option<Value>, ctx: &'f C, indices: &Vec<i32>) -> Option<i32>
+        fn eval<'f, C>(o: Option<Value>, ctx: &'f C, indices: &[i32]) -> Option<i32>
         where
             C: WrapProgram + FetchVal<'f>,
         {
@@ -209,7 +209,7 @@ where
 {
     fn eval(&self, ctx: &'f C) -> Option<EvaledAggregate> {
         let array = self.1.build(self.0);
-        Some(array.eval(ctx)?)
+        array.eval(ctx)
     }
 }
 
@@ -234,7 +234,7 @@ where
 pub fn generate_evaled_aggregate<'a, 'f: 'a, 'b: 'a, C>(
     agg: &'a EvaledAggregate,
     ctx: &'f mut C,
-    tys: &'b Vec<Type>,
+    tys: &'b [Type],
 ) -> Value
 where
     C: AddPlainValue,

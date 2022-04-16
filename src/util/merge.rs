@@ -60,22 +60,26 @@ where
         let ret = loop {
             let item = self.iter.next();
 
-            let item = if item.is_none() {
-                return Some((self.f)(self.acc.take()?));
+            // let item = if item.is_none() {
+            //     return Some((self.f)(self.acc.take()?));
+            // } else {
+            //     item.unwrap()
+            // };
+
+            let item = if let Some(item) = item {
+                item
             } else {
-                item.unwrap()
+                return Some((self.f)(self.acc.take()?));
             };
 
             if let Some(ref t) = (self.p)(&item) {
                 let new = (self.a)(&self.acc.take().unwrap_or_default(), t);
                 self.acc.replace(new);
+            } else if self.acc.is_some() {
+                self.buff = Some(item);
+                break (self.f)(self.acc.take().unwrap());
             } else {
-                if self.acc.is_some() {
-                    self.buff = Some(item);
-                    break (self.f)(self.acc.take().unwrap());
-                } else {
-                    break item;
-                }
+                break item;
             }
         };
         Some(ret)

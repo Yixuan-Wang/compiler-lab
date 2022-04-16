@@ -72,7 +72,7 @@ pub struct ShapedInitializer<'a>(pub &'a Shape, pub &'a Initializer);
 
 impl Initializer {
     pub fn build<'a, 'b>(&'a self, shape: &'b Shape) -> RawAggregate<'a> {
-        let mut h: InitializerStack<'a, 'b> = InitializerStack::new(&shape);
+        let mut h: InitializerStack<'a, 'b> = InitializerStack::new(shape);
         // let mut dest = vec![];
         self.fill(&mut h);
         h.try_carry(0);
@@ -222,7 +222,7 @@ impl<'a, 'b> InitializerStack<'a, 'b> {
         };
         self.progress.pop();
         self.stack.push(aggregate);
-        self.progress.last_mut().and_then(|x| Some(*x += 1)); //p));
+        if let Some(x) = self.progress.last_mut() { *x += 1; } //p));
     }
 
     fn is_not_full(&self) -> bool {
@@ -231,7 +231,7 @@ impl<'a, 'b> InitializerStack<'a, 'b> {
     }
 
     fn should_pad(&self, enter_level: usize) -> bool {
-        self.is_not_full() && enter_level <= self.progress.len() - 1
+        self.is_not_full() && enter_level < self.progress.len()
     }
 
     fn pad(&self) -> i32 {

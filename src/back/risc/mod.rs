@@ -55,11 +55,11 @@ impl Display for RiscItem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use self::RiscItem::*;
         match self {
-            Label(l) => write!(f, "{l}:\n"),
-            Dirc(d) => write!(f, "  .{d}\n"),
-            Inst(i) => write!(f, "  {i}\n"),
-            Comment(c) => write!(f, "# {c}\n"),
-            Blank => write!(f, "\n"),
+            Label(l) => writeln!(f, "{l}:"),
+            Dirc(d) => writeln!(f, "  .{d}"),
+            Inst(i) => writeln!(f, "  {i}"),
+            Comment(c) => writeln!(f, "# {c}"),
+            Blank => writeln!(f),
         }
     }
 }

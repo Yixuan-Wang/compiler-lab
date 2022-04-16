@@ -15,8 +15,7 @@ use self::{
 };
 use context::Context;
 use koopa::{
-    front::ast::Aggregate,
-    ir::{self, values::GlobalAlloc},
+    ir::{self},
 };
 
 pub struct Target(pub String);
@@ -39,7 +38,7 @@ impl TryFrom<Ir> for Target {
         code.extend(
             data.iter()
                 .filter(|(_, d)| matches!(d.kind(), koopa::ir::ValueKind::GlobalAlloc(_)))
-                .flat_map(|(h, d)| {
+                .flat_map(|(_h, d)| {
                     use koopa::ir::ValueKind::*;
                     let a = if let GlobalAlloc(a) = d.kind() {
                         a
@@ -67,7 +66,7 @@ impl TryFrom<Ir> for Target {
                                     }
                                 },
                                 |acc, step| acc + step,
-                                |acc| Dirc::Zero(acc),
+                                Dirc::Zero,
                             )
                             .map(Item::Dirc),
                         )

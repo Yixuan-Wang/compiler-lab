@@ -1,10 +1,10 @@
-use crate::front::ast::{Initializer, ShapedInitializer, Ty};
-use crate::front::gen::eval::generate_evaled_aggregate;
+use crate::front::ast::{Ty};
+
 use crate::util::shape::Shape;
 use crate::{ty, WrapProgram};
 
 use crate::front::{
-    ast::{self, EvaledAggregate},
+    ast::{self},
     context::Context,
 };
 use koopa::ir::{self, builder_traits::*};
@@ -17,7 +17,7 @@ pub mod prelude;
 pub mod lazy;
 pub use lazy::*;
 
-use super::ast::{AsLVal, GeneratedAggregate, Init, RawAggregate};
+use super::ast::{AsLVal, Init, RawAggregate};
 use super::context::AddPlainValue;
 
 /// [`Generate`] 处理语句（[`ast::StmtKind`]），将每一条语句转化为 Koopa 内存形式
@@ -199,8 +199,7 @@ impl<'f> Generate<'f> for ast::Decl {
         if matches!(self.kind, SymKind::Const) && matches!(self.ty, Ty::Int) {
             let init_val = self
                 .init
-                .as_ref()
-                .map(|i| match i {
+                .as_ref().and_then(|i| match i {
                     Init::Initializer(_) => {
                         // let unevaled_shape = if let Ty::Array(a) = &self.ty { a } else { unreachable!() };
                         // let shape: Shape = unevaled_shape.eval(ctx)?.into();
@@ -210,8 +209,7 @@ impl<'f> Generate<'f> for ast::Decl {
                         unreachable!()
                     }
                     Init::Exp(e) => e.eval(ctx).map(|v| ctx.add_value(val!(integer(v)), None)),
-                })
-                .flatten();
+                });
             let init_val = init_val.unwrap_or_else(|| panic!("SemanticsError[ConstEvalFailure]: '{}' cannot be evaluated during compile time.", self.ident));
             ctx.table_mut().insert_val(&self.ident, init_val);
         } else {
@@ -308,30 +306,21 @@ impl<'f> Generate<'f> for (&ast::LVal, AsLVal) {
         });
         let lval = ctx.value(lval_handle);
         if self.0 .1.is_empty() {
-            println!("LVal {}", self.0);
-            if lval.kind().is_const() {
-                // const or var
-                return lval_handle;
+            if lval.kind().is_const() || matches!(self.1, AsLVal::L) {
+                lval_handle
             } else {
-                if matches!(self.1, AsLVal::L) {
-                    return lval_handle;
-                } else {
-                    let load = ctx.add_mid_value(val!(load(lval_handle)));
-                    ctx.insert_inst(load, ctx.curr());
-                    return load;
-                }
+                let load = ctx.add_mid_value(val!(load(lval_handle)));
+                ctx.insert_inst(load, ctx.curr());
+                load
             }
         } else {
             let indices = (&self.0 .1).generate(ctx);
-            print!("LVal[] {} -> ", self.0);
             let mut ptr = lval_handle;
             for index in indices {
-                print!("[{}]", ctx.val_name(ptr));
                 let get_element_ptr = ctx.add_mid_value(val!(get_elem_ptr(ptr, index)));
                 ctx.insert_inst(get_element_ptr, ctx.curr());
                 ptr = get_element_ptr;
             }
-            println!();
             if matches!(self.1, AsLVal::L) {
                 ptr
             } else {
@@ -384,7 +373,7 @@ fn generate_aggregate<'f>(
     ctx: &'f mut Context,
     shape: &Shape,
     should_eval: bool,
-) -> () {
+) {
     match raw {
         RawAggregate::Agg(v) => {
             for (i, a) in v.iter().enumerate() {
@@ -403,8 +392,8 @@ fn generate_aggregate<'f>(
             let store = ctx.add_value(val!(store(val, ptr)), None);
             ctx.insert_inst(store, ctx.curr());
         }
-        RawAggregate::ZeroInitOne(u) => {
-            let mut zero = ctx.add_plain_value_zeroinit(ty!(i32));
+        RawAggregate::ZeroInitOne(_u) => {
+            let zero = ctx.add_plain_value_zeroinit(ty!(i32));
             let store = ctx.add_value(val!(store(zero, ptr)), None);
             ctx.insert_inst(store, ctx.curr());
         }

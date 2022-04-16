@@ -44,8 +44,7 @@ impl<'a> Declare<'a> for ast::Item {
                     let ty = d.ty.to(&ctx);
                     let init_val = d
                         .init
-                        .as_ref()
-                        .map(|i| match i {
+                        .as_ref().and_then(|i| match i {
                             Init::Initializer(i) => {
                                 let unevaled_shape = if let Ty::Array(a) = &d.ty {
                                     a
@@ -61,8 +60,7 @@ impl<'a> Declare<'a> for ast::Item {
                             Init::Exp(e) => e
                                 .eval(&ctx)
                                 .map(|v| ctx.add_global_value(val!(integer(v)), None)),
-                        })
-                        .flatten();
+                        });
                     match d.kind {
                         SymKind::Const => {
                             let alloc = ctx.add_global_value(
@@ -73,7 +71,7 @@ impl<'a> Declare<'a> for ast::Item {
                         }
                         SymKind::Var => {
                             let v =
-                                init_val.unwrap_or(ctx.add_global_value(val!(zero_init(ty)), None));
+                                init_val.unwrap_or_else(|| ctx.add_global_value(val!(zero_init(ty)), None));
                             let alloc = ctx.add_global_value(
                                 val!(global_alloc(v)),
                                 Some(format!("@{}", d.ident)),

@@ -18,7 +18,7 @@ impl Shape {
         Shape(v, p, size)
     }
 
-    pub fn index(&self, v: &Vec<i32>) -> i32 {
+    pub fn index(&self, v: &[i32]) -> i32 {
         assert_eq!(v.len(), self.0.len());
         zip(v, &self.1).fold(0, |acc, (i, s)| acc + i * s)
     }
@@ -79,7 +79,7 @@ impl TryFrom<&ir::Type> for Shape {
     type Error = TryFromIntError;
 
     fn try_from(ty: &ir::Type) -> Result<Self, Self::Error> {
-        Ok(ty.kind().try_into()?)
+        ty.kind().try_into()
     }
 }
 

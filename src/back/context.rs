@@ -136,7 +136,7 @@ impl<'a> Context<'a> {
             .collect();
 
         // 确定是否保存 `ra` 寄存器，并分配空间
-        let is_leaf = calls.len() == 0;
+        let is_leaf = calls.is_empty();
         *self.is_leaf.borrow_mut() = Some(is_leaf);
         if !is_leaf {
             let ra = Reg::Ra;
