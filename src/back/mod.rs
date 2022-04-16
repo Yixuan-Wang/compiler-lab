@@ -14,9 +14,7 @@ use self::{
     risc::{RiscDirc as Dirc, RiscItem as Item, RiscLabel},
 };
 use context::Context;
-use koopa::{
-    ir::{self},
-};
+use koopa::ir::{self};
 
 pub struct Target(pub String);
 

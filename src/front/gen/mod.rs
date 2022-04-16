@@ -1,4 +1,4 @@
-use crate::front::ast::{Ty};
+use crate::front::ast::Ty;
 
 use crate::util::shape::Shape;
 use crate::{ty, WrapProgram};
@@ -197,19 +197,17 @@ impl<'f> Generate<'f> for ast::Decl {
         use ast::SymKind;
         let ty: ir::Type = self.ty.to(ctx);
         if matches!(self.kind, SymKind::Const) && matches!(self.ty, Ty::Int) {
-            let init_val = self
-                .init
-                .as_ref().and_then(|i| match i {
-                    Init::Initializer(_) => {
-                        // let unevaled_shape = if let Ty::Array(a) = &self.ty { a } else { unreachable!() };
-                        // let shape: Shape = unevaled_shape.eval(ctx)?.into();
-                        // let shaped_initializer = ShapedInitializer(&shape, i);
-                        // let evaled_aggregate = shaped_initializer.eval(ctx)?;
-                        // Some(generate_aggregate(&evaled_aggregate, ctx, &shape, true))
-                        unreachable!()
-                    }
-                    Init::Exp(e) => e.eval(ctx).map(|v| ctx.add_value(val!(integer(v)), None)),
-                });
+            let init_val = self.init.as_ref().and_then(|i| match i {
+                Init::Initializer(_) => {
+                    // let unevaled_shape = if let Ty::Array(a) = &self.ty { a } else { unreachable!() };
+                    // let shape: Shape = unevaled_shape.eval(ctx)?.into();
+                    // let shaped_initializer = ShapedInitializer(&shape, i);
+                    // let evaled_aggregate = shaped_initializer.eval(ctx)?;
+                    // Some(generate_aggregate(&evaled_aggregate, ctx, &shape, true))
+                    unreachable!()
+                }
+                Init::Exp(e) => e.eval(ctx).map(|v| ctx.add_value(val!(integer(v)), None)),
+            });
             let init_val = init_val.unwrap_or_else(|| panic!("SemanticsError[ConstEvalFailure]: '{}' cannot be evaluated during compile time.", self.ident));
             ctx.table_mut().insert_val(&self.ident, init_val);
         } else {

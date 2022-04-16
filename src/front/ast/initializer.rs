@@ -222,7 +222,9 @@ impl<'a, 'b> InitializerStack<'a, 'b> {
         };
         self.progress.pop();
         self.stack.push(aggregate);
-        if let Some(x) = self.progress.last_mut() { *x += 1; } //p));
+        if let Some(x) = self.progress.last_mut() {
+            *x += 1;
+        } //p));
     }
 
     fn is_not_full(&self) -> bool {

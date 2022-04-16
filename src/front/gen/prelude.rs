@@ -9,7 +9,7 @@ fn decl_func<'a: 'b, 'b>(
     ret_ty: ir::Type,
 ) -> ir::Function {
     let func_data = ir::FunctionData::new_decl(name.to_string(), params_ty.into(), ret_ty);
-    
+
     program.new_func(func_data)
 }
 

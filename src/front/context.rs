@@ -207,7 +207,10 @@ impl<'a: 'f, 'f> Context<'a> {
     }
 
     pub fn val_name(&self, v: ir::Value) -> String {
-        self.value(v).name().clone().unwrap_or_else(|| "{?}".to_string())
+        self.value(v)
+            .name()
+            .clone()
+            .unwrap_or_else(|| "{?}".to_string())
     }
 
     /* pub fn kind(&self) -> &ir::TypeKind {

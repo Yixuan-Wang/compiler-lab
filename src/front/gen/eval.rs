@@ -1,7 +1,6 @@
 use koopa::ir::{Type, Value};
 
-
-use crate::{WrapProgram};
+use crate::WrapProgram;
 
 use crate::front::context::AddPlainValue;
 use crate::front::{ast::*, symtab::FetchVal};

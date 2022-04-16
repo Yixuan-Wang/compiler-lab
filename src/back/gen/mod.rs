@@ -94,7 +94,6 @@ impl<'a> Generate<'a> for ir::entities::Value {
             GlobalAlloc(_) => vec![],
             Load(_) => vec![],
             Store(s) => {
-                
                 let mut v = vec![];
                 if let Undef(_) = ctx.value(s.value()).kind() {
                     return v;
