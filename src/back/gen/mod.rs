@@ -98,9 +98,10 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 if let Undef(_) = ctx.value(s.value()).kind() {
                     return v;
                 }
-                let (reg, inst) = s.value().to_reg(ctx, None);
-                v.extend(inst);
-                let dest = s.dest();
+                let (dreg, dinst) = s.dest().to_reg(ctx, None);
+                let (vreg, vinst) = s.value().to_reg(ctx, None);
+                v.extend(dinst);
+                v.extend(vinst);
                 v.push(Inst::Com(format!(
                     "store ({}, {:?}) ({}, {:?})",
                     value_data.ty(),
@@ -108,32 +109,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                     ctx.value(s.dest()).ty(),
                     ctx.value(s.dest()).kind()
                 )));
-                match ctx.value(dest).kind() {
-                    Alloc(_) => {
-                        if !dest.is_global() {
-                            let offset = frame!(ctx).get(dest);
-                            v.extend(Inst::Sw(reg, offset, Reg::Sp).expand_imm());
-                        } else {
-                            let label = RiscLabel::strip(ctx.value(dest).name().clone().unwrap());
-                            let temp_reg = ctx.reg_map_mut().appoint_temp_reg(s.dest());
-                            v.extend([Inst::La(temp_reg, label), Inst::Sw(reg, 0, temp_reg)]);
-                        }
-                    }
-                    GetElemPtr(_) => {
-                        let offset = frame!(ctx).get(dest);
-                        v.extend(Inst::Lw(Reg::T(0), offset, Reg::Sp).expand_imm());
-                        // v.push(Inst::Sw(Reg::T(0), 0, Reg::T(0)));
-                        /* while let TypeKind::Pointer(t) = ptr {
-                            ptr = t.kind()
-                        } */
-                        v.push(Inst::Sw(reg, 0, Reg::T(0)));
-                    }
-                    _ => unimplemented!("{:?}", ctx.value(dest).kind()), // mut ptr @ TypeKind::Pointer(_) => {
-                                                                         //     assert!(!dest.is_global());
-                                                                         //
-                                                                         // }
-                                                                         // _ => unimplemented!("store {}", ctx.value(dest).ty().kind())
-                }
+                v.push(Inst::Sw(vreg, 0, dreg));
                 v
             }
             Undef(_) => vec![],
