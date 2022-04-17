@@ -1,3 +1,5 @@
+use std::iter::zip;
+
 use crate::front::ast::Ty;
 
 use crate::util::shape::Shape;
@@ -287,7 +289,10 @@ impl<'f> Generate<'f> for ast::Decl {
 impl<'f> Generate<'f> for (&ast::Param, ir::Value) {
     type Val = ();
     fn generate(&self, ctx: &'f mut Context) -> Self::Val {
-        let alloc = ctx.add_value(val!(alloc(ty!(i32))), Some(format!("@{}", &self.0.ident)));
+        dbg!(ctx.value(self.1).ty());
+        dbg!(self.0);
+        let ty = ctx.value(self.1).ty().clone();
+        let alloc = ctx.add_value(val!(alloc(ty)), Some(format!("@{}", &self.0.ident)));
         ctx.table_mut().insert_val(&self.0.ident, alloc);
         ctx.insert_inst(alloc, ctx.curr());
         let store = ctx.add_value(val!(store(self.1, alloc)), None);
@@ -305,10 +310,13 @@ impl<'f> Generate<'f> for (&ast::LVal, AsLVal) {
             )
         });
         let lval = ctx.value(lval_handle);
-        if self.0 .1.is_empty() {
+        let lval_ty = lval.ty();
+        if lval_ty == &ty!(i32) || lval_ty == &ty!(*i32) {
+            println!("LVal is int");
             if lval.kind().is_const() || matches!(self.1, AsLVal::L) {
                 lval_handle
             } else {
+                println!("Load LVal::R {}: {}", ctx.val_name(lval_handle), lval_ty);
                 let load = ctx.add_mid_value(val!(load(lval_handle)));
                 ctx.insert_inst(load, ctx.curr());
                 load
@@ -317,16 +325,38 @@ impl<'f> Generate<'f> for (&ast::LVal, AsLVal) {
             let indices = (&self.0 .1).generate(ctx);
             let mut ptr = lval_handle;
             for index in indices {
-                let get_element_ptr = ctx.add_mid_value(val!(get_elem_ptr(ptr, index)));
-                ctx.insert_inst(get_element_ptr, ctx.curr());
-                ptr = get_element_ptr;
+                use ir::TypeKind::*;
+                let ptr_to = if let Pointer(t) = ctx.value(ptr).ty().kind() { t.clone() } else { unreachable!() };
+                let get_some_ptr = if matches!(ptr_to.kind(), Array(..)) {
+                    ctx.add_mid_value(val!(get_elem_ptr(ptr, index)))
+                } else {
+                    let load = ctx.add_mid_value(val!(load(ptr)));
+                    ctx.insert_inst(load, ctx.curr());
+                    ctx.add_mid_value(val!(get_ptr(load, index)))
+                };
+                println!("ptr: {} {:?} {}", ctx.val_name(get_some_ptr), ctx.value(get_some_ptr).kind(), ctx.value(get_some_ptr).ty());
+                ctx.insert_inst(get_some_ptr, ctx.curr());
+                ptr = get_some_ptr;
             }
             if matches!(self.1, AsLVal::L) {
                 ptr
             } else {
-                let load = ctx.add_mid_value(val!(load(ptr)));
-                ctx.insert_inst(load, ctx.curr());
-                load
+                use ir::TypeKind::*;
+                let ptr_to = if let Pointer(t) = ctx.value(ptr).ty().kind() { t.clone() } else { unreachable!() };
+                if let Array(..) = ptr_to.kind() {
+                    // 得到 *[T; N], 则需要 *T 而非 [T; N]
+                    // getelemptr *[T; 0] -> *T
+                    let zero = ctx.zero;
+                    println!("should arr_ptr_to_ptr: {}", ctx.value(ptr).ty());
+                    let arr_ptr_to_ptr = ctx.add_mid_value(val!(get_elem_ptr(ptr, zero)));
+                    println!("arr_ptr_to_ptr: {}", ctx.value(arr_ptr_to_ptr).ty());
+                    ctx.insert_inst(arr_ptr_to_ptr, ctx.curr());
+                    arr_ptr_to_ptr
+                } else {
+                    let load = ctx.add_mid_value(val!(load(ptr)));
+                    ctx.insert_inst(load, ctx.curr());
+                    load
+                }
             }
         }
         /*
@@ -455,6 +485,10 @@ impl<'f> Generate<'f> for ast::UnaryExp {
                     _ => unreachable!(),
                 };
                 let param_values: Vec<_> = params.iter().map(|p| p.generate(ctx)).collect();
+                for (p, v) in zip(params.iter(), param_values.iter()) {
+                    println!("{}: {}", p, ctx.value(*v).ty())
+                }
+                println!("{}", ctx.func(func).ty());
                 let call = if ret_unit {
                     ctx.add_value(val!(call(func, param_values)), None)
                 } else {

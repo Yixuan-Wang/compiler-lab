@@ -39,7 +39,10 @@ FuncHead: (Ty, String) = {
     "void" <IDENT> "(" => (Ty::Void, <>),
 }
 
-Param: Param = "int" <ident:IDENT> => Param { ty: Ty::Int, ident };
+Param: Param = {
+    "int" <ident:IDENT> => Param { ty: Ty::Int, ident, arr: None },
+    "int" <ident:IDENT> "[" "]" <arr: ("[" <ConstExp> "]")*> => Param { ty: Ty::Int, ident, arr: Some(arr) }
+};
 
 Decl: Vec<Decl> = {
     "const" "int" <v: Comma<ConstDef>> ";" => {

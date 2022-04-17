@@ -195,9 +195,23 @@ impl Display for LVal {
 pub struct Param {
     pub ident: String,
     pub ty: Ty,
+    pub arr: Option<Vec<Exp>>
 }
 
-use crate::{ty, util::shape::Shape, WrapProgram};
+impl Param {
+    pub fn ty<'f, C>(&self, ctx: &'f C) -> koopa::ir::Type
+    where C: WrapProgram + FetchVal<'f>, {
+        match self.arr {
+            None => (&self.ty).into(),
+            Some(ref v) => {
+                let remainder_dims: Vec<usize> = v.eval(ctx).unwrap().into_iter().map(|i| i.try_into().unwrap()).collect();
+                ir::Type::get_pointer(to_array_ty(remainder_dims.into_iter()))
+            }
+        }
+    }
+}
+
+use crate::{ty, util::{shape::Shape, ir_type::to_array_ty}, WrapProgram};
 mod exp;
 pub use exp::*;
 

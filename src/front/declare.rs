@@ -80,11 +80,12 @@ impl<'a> Declare<'a> for ast::Item {
                 }
             }
             Func(f) => {
+                let global_ctx = GlobalContext::new(program, global_val_tab);
                 let func_data = ir::FunctionData::with_param_names(
                     format!("@{}", f.ident),
                     f.params
                         .iter()
-                        .map(|p| (Some(format!("@_{}", p.ident)), (&p.ty).into()))
+                        .map(|p| (Some(format!("@_{}", p.ident)), p.ty(&global_ctx)))
                         .collect(),
                     (&f.output).into(),
                 );
