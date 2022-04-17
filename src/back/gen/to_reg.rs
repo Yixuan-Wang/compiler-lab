@@ -78,7 +78,7 @@ impl<'a> ToReg<'a> for Value {
                     (reg, vec![Inst::Mv(reg, Reg::A(i.try_into().unwrap()))])
                 }
             }
-            GetElemPtr(_) => {
+            GetElemPtr(_) | GetPtr(_) => {
                 let offset = frame!(ctx).get(*self);
                 (reg, Lw(reg, offset, Reg::Sp).expand_imm())
             }

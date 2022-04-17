@@ -32,7 +32,7 @@ impl Allocate for ir::entities::ValueData {
     fn allocate(&self) -> i32 {
         use ir::{TypeKind::*, ValueKind::*};
         match self.kind() {
-            Binary(_) | Call(_) | GetElemPtr(_) => self.ty().allocate(),
+            Binary(_) | Call(_) | GetElemPtr(_) | GetPtr(_) => self.ty().allocate(),
             Alloc(_) => {
                 if let Pointer(t) = self.ty().kind() {
                     t

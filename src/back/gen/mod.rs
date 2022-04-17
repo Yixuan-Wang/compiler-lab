@@ -101,13 +101,14 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 match ctx.value(value).kind() {
                     Undef(_) => return v,
                     ZeroInit(_) => {
-                        let ty = ctx.value(value).ty().clone();
-                        if matches!(ty.kind(), ir::TypeKind::Array(..)) {
-                            let offset = frame!(ctx).get(dest);
-                            let size: i32 = ty.size().try_into().unwrap();
-                            let arr_init = (offset..offset+size).into_iter().step_by(4).flat_map(|of| Inst::Sw(Reg::Zero, of, Reg::Sp).expand_imm()).collect();
-                            return arr_init;
-                        }
+                        // let ty = ctx.value(value).ty().clone();
+                        // if matches!(ty.kind(), ir::TypeKind::Array(..)) {
+                        //     let offset = frame!(ctx).get(dest);
+                        //     let size: i32 = ty.size().try_into().unwrap();
+                        //     let arr_init = (offset..offset+size).into_iter().step_by(4).flat_map(|of| Inst::Sw(Reg::Zero, of, Reg::Sp).expand_imm()).collect();
+                        //     return arr_init;
+                        // }
+                        return v;
                     }
                     _ => {}
                 };
@@ -229,6 +230,46 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 let offset = frame!(ctx).get(*self);
                 v.extend(Inst::Sw(sreg, offset, Reg::Sp).expand_imm());
                 v.push(Inst::Com("end get_elem_ptr".to_string()));
+                v
+            }
+            // getptr ptr index
+            // where ptr: *T, index: i32
+            //       getelemptr *T
+            // ptr + index * sizeof(T)
+            GetPtr(p) => {
+                use ir::TypeKind;
+                let mut v: Vec<Inst> = vec![];
+
+                let (sreg, sinst) = p.src().to_reg(ctx, None);
+                v.extend(sinst);
+
+                // sizeof(T)
+                let t_size: usize = {
+                    // t: T <- ptr: *T
+                    if let TypeKind::Pointer(ta) = ctx.value(p.src()).ty().kind() {
+                        ta
+                    } else {
+                        unreachable!()
+                    }
+                }
+                .size();
+
+                // index -> ireg
+                let (ireg, iinst) = p.index().to_reg(ctx, None);
+                v.extend(iinst);
+
+                v.extend([
+                    Inst::Com(format!("! SIZE {}", t_size)),
+                    Inst::Li(Reg::T(0), t_size.try_into().unwrap()), // t0 <- sizeof(T)
+                    Inst::Com("END SIZE".to_string()),
+                    Inst::Mul(Reg::T(0), Reg::T(0), ireg), // t0 <- sizeof(T) @ t0 * index @ ireg
+                    Inst::Add(sreg, Reg::T(0), sreg),      // sreg <- product @ t0 + ptr @ sreg
+                ]);
+
+                // SPILL
+                let offset = frame!(ctx).get(*self);
+                v.extend(Inst::Sw(sreg, offset, Reg::Sp).expand_imm());
+                v.push(Inst::Com("end get_ptr".to_string()));
                 v
             }
             _ => todo!("{:#?}", value_data.kind()),

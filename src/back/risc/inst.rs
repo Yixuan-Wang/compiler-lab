@@ -110,9 +110,8 @@ impl RiscInst {
                 if of > MAX_IMM {
                     vec![
                         Li(Reg::T(0), of),
-                        Add(rd, rd, Reg::T(0)),
-                        Lw(rs, 0, rd),
-                        Sub(rd, rd, Reg::T(0)),
+                        Add(Reg::T(0), rd, Reg::T(0)),
+                        Lw(rs, 0, Reg::T(0)),
                     ]
                 } else {
                     vec![self]
@@ -122,9 +121,8 @@ impl RiscInst {
                 if of > MAX_IMM {
                     vec![
                         Li(Reg::T(0), of),
-                        Add(rs1, rs1, Reg::T(0)),
-                        Lw(rs2, 0, rs1),
-                        Sub(rs1, rs1, Reg::T(0)),
+                        Add(Reg::T(0), rs1, Reg::T(0)),
+                        Sw(rs2, 0, Reg::T(0)),
                     ]
                 } else {
                     vec![self]
