@@ -95,19 +95,32 @@ impl<'a> Generate<'a> for ir::entities::Value {
             Load(_) => vec![],
             Store(s) => {
                 let mut v = vec![];
-                if let Undef(_) = ctx.value(s.value()).kind() {
-                    return v;
-                }
-                let (dreg, dinst) = s.dest().to_reg(ctx, None);
-                let (vreg, vinst) = s.value().to_reg(ctx, None);
+                let dest = s.dest();
+                let value = s.value();
+
+                match ctx.value(value).kind() {
+                    Undef(_) => return v,
+                    ZeroInit(_) => {
+                        let ty = ctx.value(value).ty().clone();
+                        if matches!(ty.kind(), ir::TypeKind::Array(..)) {
+                            let offset = frame!(ctx).get(dest);
+                            let size: i32 = ty.size().try_into().unwrap();
+                            let arr_init = (offset..offset+size).into_iter().step_by(4).flat_map(|of| Inst::Sw(Reg::Zero, of, Reg::Sp).expand_imm()).collect();
+                            return arr_init;
+                        }
+                    }
+                    _ => {}
+                };
+                let (dreg, dinst) = dest.to_reg(ctx, None);
+                let (vreg, vinst) = value.to_reg(ctx, None);
                 v.extend(dinst);
                 v.extend(vinst);
                 v.push(Inst::Com(format!(
                     "store ({}, {:?}) ({}, {:?})",
                     value_data.ty(),
                     value_data.kind(),
-                    ctx.value(s.dest()).ty(),
-                    ctx.value(s.dest()).kind()
+                    ctx.value(dest).ty(),
+                    ctx.value(dest).kind()
                 )));
                 v.push(Inst::Sw(vreg, 0, dreg));
                 v

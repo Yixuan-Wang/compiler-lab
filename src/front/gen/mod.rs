@@ -225,8 +225,7 @@ impl<'f> Generate<'f> for ast::Decl {
                             unreachable!()
                         };
                         let shape: Shape = unevaled_shape.eval(ctx).unwrap().into();
-                        let raw_aggregate = unwrap_aggregate(i.build(&shape), &shape);
-                        println!("{}", raw_aggregate);
+                        let raw_aggregate = i.build(&shape);// unwrap_aggregate(, &shape);
                         InitVal::Aggregate(raw_aggregate, shape)
                     }
                     Init::Exp(e) => {
@@ -247,8 +246,8 @@ impl<'f> Generate<'f> for ast::Decl {
                             unreachable!()
                         };
                         let shape: Shape = unevaled_shape.eval(ctx).unwrap().into();
-                        let raw_aggregate =
-                            unwrap_aggregate(RawAggregate::ZeroInitWhole(0), &shape);
+                        let raw_aggregate = RawAggregate::ZeroInitWhole(0);
+                            // unwrap_aggregate(, &shape);
                         InitVal::Aggregate(raw_aggregate, shape)
                     }
                 }
@@ -268,6 +267,9 @@ impl<'f> Generate<'f> for ast::Decl {
                         ctx.add_value(val!(alloc(ty.clone())), Some(format!("@{}", &self.ident)));
                     ctx.insert_inst(alloc, ctx.curr());
                     ctx.table_mut().insert_val(&self.ident, alloc);
+                    let zero_init = ctx.add_plain_value_zeroinit(ty);
+                    let wipe = ctx.add_value(val!(store(zero_init, alloc)), None);
+                    ctx.insert_inst(wipe, ctx.curr());
 
                     generate_aggregate(
                         &raw_aggregate,
@@ -343,7 +345,7 @@ impl<'f> Generate<'f> for (&ast::LVal, AsLVal) {
     }
 }
 
-fn unwrap_aggregate<'a>(raw: RawAggregate<'a>, shape: &Shape) -> RawAggregate<'a> {
+/* fn unwrap_aggregate<'a>(raw: RawAggregate<'a>, shape: &Shape) -> RawAggregate<'a> {
     match raw {
         RawAggregate::Agg(v) => {
             RawAggregate::Agg(v.into_iter().map(|a| unwrap_aggregate(a, shape)).collect())
@@ -363,7 +365,7 @@ fn unwrap_aggregate<'a>(raw: RawAggregate<'a>, shape: &Shape) -> RawAggregate<'a
             }
         }
     }
-}
+} */
 
 fn generate_aggregate<'f>(
     raw: &RawAggregate,
@@ -375,10 +377,12 @@ fn generate_aggregate<'f>(
     match raw {
         RawAggregate::Agg(v) => {
             for (i, a) in v.iter().enumerate() {
-                let idx = ctx.add_plain_value_integer(i as i32);
-                let p = ctx.add_mid_value(val!(get_elem_ptr(ptr, idx)));
-                ctx.insert_inst(p, ctx.curr());
-                generate_aggregate(a, p, ctx, shape, should_eval);
+                if !matches!(a, RawAggregate::ZeroInitOne(_) | RawAggregate::ZeroInitWhole(_)) {
+                    let idx = ctx.add_plain_value_integer(i as i32);
+                    let p = ctx.add_mid_value(val!(get_elem_ptr(ptr, idx)));
+                    ctx.insert_inst(p, ctx.curr());
+                    generate_aggregate(a, p, ctx, shape, should_eval);
+                }
             }
         }
         RawAggregate::Value(e) => {
@@ -390,12 +394,11 @@ fn generate_aggregate<'f>(
             let store = ctx.add_value(val!(store(val, ptr)), None);
             ctx.insert_inst(store, ctx.curr());
         }
-        RawAggregate::ZeroInitOne(_u) => {
-            let zero = ctx.add_plain_value_zeroinit(ty!(i32));
+        RawAggregate::ZeroInitOne(_) | RawAggregate::ZeroInitWhole(_) => {
+            /* let zero = ctx.add_plain_value_zeroinit(ty!(i32));
             let store = ctx.add_value(val!(store(zero, ptr)), None);
-            ctx.insert_inst(store, ctx.curr());
+            ctx.insert_inst(store, ctx.curr()); */
         }
-        RawAggregate::ZeroInitWhole(_) => unimplemented!(),
     }
 }
 
