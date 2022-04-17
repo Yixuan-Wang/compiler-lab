@@ -155,7 +155,7 @@ where
     C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<i32> {
-        fn eval<'f, C>(o: Option<Value>, ctx: &'f C, indices: &[i32]) -> Option<i32>
+        fn eval<'f, C>(o: Option<Value>, ctx: &'f C) -> Option<i32>
         where
             C: WrapProgram + FetchVal<'f>,
         {
@@ -169,7 +169,7 @@ where
                     //     let x: usize = shape.index(indices).try_into().unwrap();
                     //     ag.elems().get(x).map(|val| eval(Some(*val), ctx, indices)).flatten()
                     // }
-                    GlobalAlloc(a) => eval(Some(a.init()), ctx, indices),
+                    GlobalAlloc(a) => eval(Some(a.init()), ctx),
                     _ => None,
                 },
                 None => {
@@ -177,9 +177,9 @@ where
                 }
             }
         }
-        let indices = (&self.1).eval(ctx).unwrap();
+        // let indices = (&self.1).eval(ctx);
         match ctx.fetch_val(&self.0) {
-            v @ Some(_) => eval(v, ctx, &indices),
+            v @ Some(_) => eval(v, ctx),
             None => panic!(
                 "SemanticsError[UndefinedSymbol]: '{}' is used before definition.",
                 &self.0
