@@ -3,6 +3,7 @@ use koopa::ir::{Type, Value};
 use crate::WrapProgram;
 
 use crate::front::context::AddPlainValue;
+use crate::front::symtab::SymVal;
 use crate::front::{ast::*, symtab::FetchVal};
 
 macro_rules! eval {
@@ -155,31 +156,17 @@ where
     C: WrapProgram + FetchVal<'f>,
 {
     fn eval(&self, ctx: &'f C) -> Option<i32> {
-        fn eval<'f, C>(o: Option<Value>, ctx: &'f C) -> Option<i32>
-        where
-            C: WrapProgram + FetchVal<'f>,
-        {
-            use koopa::ir::entities::ValueKind::*;
-            match o {
-                Some(v) => match ctx.fetch_val_kind(v) {
-                    Integer(i) => Some(i.value()),
-                    // 编译期不对数组求值
-                    // Aggregate(ag) => {
-                    //     let shape: Shape = (&ctx.fetch_val_type(v)).try_into().unwrap();
-                    //     let x: usize = shape.index(indices).try_into().unwrap();
-                    //     ag.elems().get(x).map(|val| eval(Some(*val), ctx, indices)).flatten()
-                    // }
-                    GlobalAlloc(a) => eval(Some(a.init()), ctx),
-                    _ => None,
-                },
-                None => {
-                    panic!("SemanticsError[UndefinedSymbol]: A symbol is used before definition.")
-                }
-            }
-        }
+        use koopa::ir::ValueKind;
         // let indices = (&self.1).eval(ctx);
         match ctx.fetch_val(&self.0) {
-            v @ Some(_) => eval(v, ctx),
+            Some(v) => match v {
+                SymVal::Val(v) => {
+                    if let ValueKind::Integer(i) = ctx.fetch_val_kind(v) {
+                        Some(i.value())
+                    } else { None }
+                },
+                SymVal::GlobalConst(i) => Some(i),
+            },
             None => panic!(
                 "SemanticsError[UndefinedSymbol]: '{}' is used before definition.",
                 &self.0

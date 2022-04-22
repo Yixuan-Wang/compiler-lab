@@ -55,17 +55,36 @@ impl<'a> Declare<'a> for ast::Item {
                             let tys = shape.tys();
                             Some(generate_evaled_aggregate(&evaled_agg, &mut ctx, &tys))
                         }
-                        Init::Exp(e) => e
-                            .eval(&ctx)
-                            .map(|v| ctx.add_global_value(val!(integer(v)), None)),
+                        Init::Exp(e) => {
+                            let i = e.eval(&ctx);
+                            if let SymKind::Const = d.kind {
+                                ctx.add_global_const_symbol(&d.ident, i.unwrap());
+                                None
+                            } else {
+                                i.map(|v| ctx.add_global_value(val!(integer(v)), None))
+                            }
+                        }
                     });
                     match d.kind {
                         SymKind::Const => {
-                            let alloc = ctx.add_global_value(
+                            /* let alloc = ctx.add_global_value(
                                 val!(global_alloc(init_val.unwrap())),
                                 Some(format!("@{}", d.ident)),
                             );
-                            ctx.register_global_value(&d.ident, alloc);
+                            ctx.register_global_value(&d.ident, alloc); */
+                            
+                            match ty.kind() {
+                                TypeKind::Int32 => {},
+                                TypeKind::Array(..) => {
+                                    let alloc = ctx.add_global_value(
+                                        val!(global_alloc(init_val.unwrap())),
+                                        Some(format!("@{}", d.ident)),
+                                    );
+                                    ctx.add_global_symbol(&d.ident, alloc);
+                                }
+                                _ => unimplemented!()
+                            }
+                           
                         }
                         SymKind::Var => {
                             let v = init_val
@@ -74,7 +93,7 @@ impl<'a> Declare<'a> for ast::Item {
                                 val!(global_alloc(v)),
                                 Some(format!("@{}", d.ident)),
                             );
-                            ctx.register_global_value(&d.ident, alloc);
+                            ctx.add_global_symbol(&d.ident, alloc);
                         }
                     };
                 }

@@ -4,7 +4,7 @@ use koopa::ir::{self, builder_traits::*};
 
 use crate::{util::autonum::Autonum, WrapProgram};
 
-use super::symtab::{FetchVal, FuncTab, Symtab, ValTab};
+use super::symtab::{FetchVal, FuncTab, Symtab, ValTab, SymVal};
 
 /// Context is a high-level [`koopa::ir::Program`] wrapper around a [`koopa::ir::Function`]
 /// with its symbol table [`Table`].
@@ -44,8 +44,8 @@ impl<'a> WrapProgram for Context<'a> {
 }
 
 impl<'a> FetchVal<'a> for Context<'a> {
-    fn fetch_val(&self, name: &str) -> Option<ir::Value> {
-        self.table().get_val(name)
+    fn fetch_val(&self, name: &str) -> Option<SymVal> {
+        self.table().get_symval(name)
     }
 
     fn fetch_val_kind(&self, val: ir::Value) -> ir::entities::ValueKind {
@@ -290,7 +290,7 @@ impl<'a> WrapProgram for GlobalContext<'a> {
 }
 
 impl<'a> FetchVal<'a> for GlobalContext<'a> {
-    fn fetch_val(&self, name: &str) -> Option<ir::Value> {
+    fn fetch_val(&self, name: &str) -> Option<SymVal> {
         self.global.get(name).cloned()
     }
 
@@ -322,8 +322,12 @@ impl<'a> GlobalContext<'a> {
         val
     }
 
-    pub fn register_global_value(&mut self, name: &str, value: ir::Value) {
-        self.global.insert(name.to_string(), value);
+    pub fn add_global_symbol(&mut self, name: &str, value: ir::Value) {
+        self.global.insert(name.to_string(), SymVal::Val(value));
+    }
+
+    pub fn add_global_const_symbol(&mut self, name: &str, integer: i32) {
+        self.global.insert(name.to_string(), SymVal::GlobalConst(integer));
     }
 }
 

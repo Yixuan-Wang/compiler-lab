@@ -303,12 +303,17 @@ impl<'f> Generate<'f> for (&ast::Param, ir::Value) {
 impl<'f> Generate<'f> for (&ast::LVal, AsLVal) {
     type Val = ir::Value;
     fn generate(&self, ctx: &'f mut Context) -> Self::Val {
-        let lval_handle = ctx.table().get_val(&self.0 .0).unwrap_or_else(|| {
+        use crate::front::symtab::SymVal;
+        let lval_handle = ctx.table().get_symval(&self.0 .0).unwrap_or_else(|| {
             panic!(
                 "SemanticsError[UndefinedSymbol]: '{}' is used before definition.",
                 &self.0
             )
         });
+        let lval_handle = match lval_handle {
+            SymVal::Val(v) => v,
+            SymVal::GlobalConst(i) => ctx.add_plain_value_integer(i),
+        };
         let lval = ctx.value(lval_handle);
         let lval_ty = lval.ty();
         if lval_ty == &ty!(i32) || lval_ty == &ty!(*i32) {
