@@ -146,8 +146,11 @@ PrimaryExp: PrimaryExp = {
 
 Number: PrimaryExp = {
     r"[1-9][0-9]*|0" => PrimaryExp::literal(<>, 10, 0),
+    "-2147483648" => PrimaryExp::Literal(-2147483648),
     r"0[0-7]+" => PrimaryExp::literal(<>, 8, 1),
+    "-0o20000000000" => PrimaryExp::Literal(-2147483648),
     r"0[xX][0-9a-fA-F]+" => PrimaryExp::literal(<>, 16, 2),
+    "-0x80000000" => PrimaryExp::Literal(-2147483648),
 }
 
 UnaryExp: UnaryExp = {
