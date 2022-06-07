@@ -116,13 +116,13 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 let (vreg, vinst) = value.to_reg(ctx, None);
                 v.extend(dinst);
                 v.extend(vinst);
-                v.push(Inst::Com(format!(
+                /* v.push(Inst::Com(format!(
                     "store ({}, {:?}) ({}, {:?})",
                     value_data.ty(),
                     value_data.kind(),
                     ctx.value(dest).ty(),
                     ctx.value(dest).kind()
-                )));
+                ))); */
                 v.push(Inst::Sw(vreg, 0, dreg));
                 v
             }
@@ -176,11 +176,11 @@ impl<'a> Generate<'a> for ir::entities::Value {
             GetElemPtr(p) => {
                 use ir::TypeKind;
                 let mut v: Vec<Inst> = vec![];
-                v.push(Inst::Com(format!(
+                /* v.push(Inst::Com(format!(
                     "get_elem_ptr {:?} {:?}",
                     ctx.value(p.src()).name(),
                     ctx.value(p.index()).name()
-                )));
+                ))); */
                 // let sreg = ctx.reg_map_mut().appoint_temp_reg(*self);
 
                 // ptr -> sreg
@@ -219,9 +219,9 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 v.extend(iinst);
 
                 v.extend([
-                    Inst::Com(format!("! SIZE {}", t_size)),
+                    // Inst::Com(format!("! SIZE {}", t_size)),
                     Inst::Li(Reg::T(0), t_size.try_into().unwrap()), // t0 <- sizeof(T)
-                    Inst::Com("END SIZE".to_string()),
+                    // Inst::Com("END SIZE".to_string()),
                     Inst::Mul(Reg::T(0), Reg::T(0), ireg), // t0 <- sizeof(T) @ t0 * index @ ireg
                     Inst::Add(sreg, Reg::T(0), sreg),      // sreg <- product @ t0 + ptr @ sreg
                 ]);
@@ -229,7 +229,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 // SPILL
                 let offset = frame!(ctx).get(*self);
                 v.extend(Inst::Sw(sreg, offset, Reg::Sp).expand_imm());
-                v.push(Inst::Com("end get_elem_ptr".to_string()));
+                // v.push(Inst::Com("end get_elem_ptr".to_string()));
                 v
             }
             // getptr ptr index
@@ -259,9 +259,9 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 v.extend(iinst);
 
                 v.extend([
-                    Inst::Com(format!("! SIZE {}", t_size)),
+                    // Inst::Com(format!("! SIZE {}", t_size)),
                     Inst::Li(Reg::T(0), t_size.try_into().unwrap()), // t0 <- sizeof(T)
-                    Inst::Com("END SIZE".to_string()),
+                    // Inst::Com("END SIZE".to_string()),
                     Inst::Mul(Reg::T(0), Reg::T(0), ireg), // t0 <- sizeof(T) @ t0 * index @ ireg
                     Inst::Add(sreg, Reg::T(0), sreg),      // sreg <- product @ t0 + ptr @ sreg
                 ]);
@@ -269,7 +269,7 @@ impl<'a> Generate<'a> for ir::entities::Value {
                 // SPILL
                 let offset = frame!(ctx).get(*self);
                 v.extend(Inst::Sw(sreg, offset, Reg::Sp).expand_imm());
-                v.push(Inst::Com("end get_ptr".to_string()));
+                // v.push(Inst::Com("end get_ptr".to_string()));
                 v
             }
             _ => todo!("{:#?}", value_data.kind()),

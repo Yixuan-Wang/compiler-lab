@@ -55,11 +55,11 @@ impl<'a> ToReg<'a> for Value {
             //       load: T
             Load(l) => {
                 let mut v = vec![];
-                v.push(Com(format!(
+                /* v.push(Com(format!(
                     "load {:?} {:?}",
                     value_data.name(),
                     ctx.value(l.src()).kind()
-                )));
+                ))); */
 
                 // ptr kind
                 let (_, ptr_insts) = l.src().to_reg(ctx, Some(reg));

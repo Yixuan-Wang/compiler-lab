@@ -161,12 +161,12 @@ impl<'a> Context<'a> {
         // 分配局部变量
         ir_insts.iter().for_each(|h| {
             let d = self.value(*h);
-            v.push(Com(format!(
+            /* v.push(Com(format!(
                 "prologue {:?} {} {}",
                 d.kind(),
                 d.ty().kind(),
                 d.allocate()
-            )));
+            ))); */
             frame!(self._mut).insert_high(*h, &d);
         });
 

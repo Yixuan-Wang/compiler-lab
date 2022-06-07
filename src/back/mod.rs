@@ -32,15 +32,15 @@ impl From<Target> for String {
     fn from(target: Target) -> Self {
         use crate::back::perf::peephole::Peephole;
 
-        /* if target.perf {
+        if target.perf {
             target.items
                 .remove_unnecessary_load_store()
                 .iter()
                 .map(|item| item.to_string())
                 .collect()
-        } else { */
+        } else {
             target.items.iter().map(|i| i.to_string()).collect::<String>()
-        // }
+        }
     }
 }
 
