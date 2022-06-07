@@ -22,7 +22,7 @@ pub use lazy::*;
 use super::ast::{AsLVal, Init, RawAggregate};
 use super::context::AddPlainValue;
 
-/// [`Generate`] 处理语句（[`ast::StmtKind`]），将每一条语句转化为 Koopa 内存形式
+/// [`Generate`] 在 AST 结点上指令式地生成对应 Koopa 内存形式
 pub trait Generate<'f> {
     type Val;
     fn generate(&self, ctx: &'f mut Context) -> Self::Val;

@@ -16,6 +16,7 @@ macro_rules! auton {
     };
 } */
 
+/// 自动编号
 pub struct Autonum {
     h: HashMap<String, Autocount>,
     temp: Autocount,

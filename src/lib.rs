@@ -5,6 +5,11 @@ pub mod util;
 
 use koopa::ir;
 
+/// 包裹 `koopa::ir::Program` 和一个 `ir::Function` 的 helper trait
+/// 
+/// 前端的 `GlobalContext` 也实现了这一 trait，但调用涉及到 `ir::Function` 的函数会 panic
+/// 
+/// `value` 方法不需要 `ir::Function`，保证在 [`front::Context`]、[`back::Context`] 和 [`front::GlobalContext`] 中都可用。
 pub trait WrapProgram {
     fn program(&self) -> &ir::Program;
     fn program_mut(&mut self) -> &mut ir::Program;

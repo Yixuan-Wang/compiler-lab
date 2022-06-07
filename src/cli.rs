@@ -1,5 +1,6 @@
 use std::env::args;
 
+/// 命令行参数解析的 helper struct
 pub struct Config {
     pub mode: CompilerMode,
     pub input: String,

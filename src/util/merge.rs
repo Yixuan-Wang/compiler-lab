@@ -1,8 +1,17 @@
+pub struct Merge<I, P, A, F, T, B> {
+    iter: I,
+    p: P,
+    a: A,
+    f: F,
+    acc: Option<T>,
+    buff: Option<B>,
+}
+
 /// 合并一个迭代器中符合某种条件的元素
 ///
-/// `P`: 合并条件和提取值 `T`
-/// `A`: 累加
-/// `F`: 从值返回原迭代器元素 `B`
+/// - `P`: 合并条件和提取值 `T`
+/// - `A`: 累加
+/// - `F`: 从值返回原迭代器元素 `B`
 ///
 /// ```
 /// let v: Vec<Result<u32, i32>> = vec![Ok(1), Err(2), Err(3), Ok(4), Err(5), Ok(6)];
@@ -16,15 +25,6 @@
 /// assert_eq!(v, [Ok(1u32), Err(5), Ok(4u32), Err(5), Ok(6u32)]);
 /// ```
 ///
-pub struct Merge<I, P, A, F, T, B> {
-    iter: I,
-    p: P,
-    a: A,
-    f: F,
-    acc: Option<T>,
-    buff: Option<B>,
-}
-
 pub fn merge<I, P, A, F, T, B>(iter: I, p: P, a: A, f: F) -> Merge<I, P, A, F, T, B>
 where
     I: Iterator<Item = B>,

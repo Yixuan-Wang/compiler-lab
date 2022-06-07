@@ -7,7 +7,7 @@ use crate::{util::autonum::Autonum, WrapProgram};
 use super::symtab::{FetchVal, FuncTab, Symtab, ValTab, SymVal};
 
 /// Context is a high-level [`koopa::ir::Program`] wrapper around a [`koopa::ir::Function`]
-/// with its symbol table [`Table`].
+/// with its symbol table [`Symtab`].
 pub struct Context<'a> {
     pub program: &'a mut ir::Program,
     // pub globals: &'a mut Symtab,
