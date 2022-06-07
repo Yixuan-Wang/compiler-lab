@@ -1,4 +1,4 @@
-use std::{cell::RefCell, error::Error};
+use std::{cell::RefCell, error::Error, fmt::Display, borrow::Cow};
 
 use crate::{front::Ir, util::merge::merge, WrapProgram};
 
@@ -7,6 +7,7 @@ mod context;
 mod gen;
 mod memory;
 mod risc;
+mod perf;
 
 use self::{
     gen::Generate,
@@ -16,11 +17,38 @@ use self::{
 use context::Context;
 use koopa::ir::{self};
 
-pub struct Target(pub String);
+pub struct Target {
+    items: Vec<Item>,
+    perf: bool
+}
 
-pub fn into_riscv(ir: Ir) -> Result<String, Box<dyn Error>> {
-    let target: Target = ir.try_into()?;
-    Ok(target.0)
+pub fn into_riscv(ir: Ir, perf: bool) -> Result<String, Box<dyn Error>> {
+    let mut target: Target = ir.try_into()?;
+    target.perf = perf;
+    Ok(target.into())
+}
+
+impl From<Target> for String {
+    fn from(target: Target) -> Self {
+        use crate::back::perf::peephole::Peephole;
+
+        /* if target.perf {
+            target.items
+                .remove_unnecessary_load_store()
+                .iter()
+                .map(|item| item.to_string())
+                .collect()
+        } else { */
+            target.items.iter().map(|i| i.to_string()).collect::<String>()
+        // }
+    }
+}
+
+#[test]
+fn test_window() {
+    let x = [1, 2, 3, 4, 5, 6];
+    let v: Vec<_> = x.as_slice().windows(2).map(|x| x.get(1).filter(|x| *x % 2 == 0)).flatten().collect();
+    dbg!(v);
 }
 
 impl TryFrom<Ir> for Target {
@@ -120,9 +148,10 @@ impl TryFrom<Ir> for Target {
             insts
         }));
 
-        Ok(Target(
-            code.iter().map(|i| i.to_string()).collect::<String>(),
-        ))
+        Ok(Target{
+            items: code,
+            perf: false,
+        })
     }
 }
 

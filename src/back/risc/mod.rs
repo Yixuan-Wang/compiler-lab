@@ -41,6 +41,7 @@ impl RiscLabel {
 }
 
 #[allow(dead_code)]
+#[derive(Debug, Clone)]
 pub enum RiscItem {
     Dirc(RiscDirc),
     Label(RiscLabel),
@@ -65,7 +66,7 @@ impl Display for RiscItem {
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RiscDirc {
     Text,
     Data,

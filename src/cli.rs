@@ -10,6 +10,7 @@ pub struct Config {
 pub enum CompilerMode {
     Koopa,
     Riscv,
+    Perf,
 }
 
 impl Config {
@@ -30,6 +31,10 @@ impl Config {
                     }
                     "-riscv" => {
                         mode = CompilerMode::Riscv;
+                        input.push_str(args.get(idx + 1).expect("Missing input path!"))
+                    }
+                    "-perf" => {
+                        mode = CompilerMode::Perf;
                         input.push_str(args.get(idx + 1).expect("Missing input path!"))
                     }
                     "-o" => output.push_str(args.get(idx + 1).expect("Missing output path!")),

@@ -14,7 +14,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             Ok(())
         }
         cli::CompilerMode::Riscv => {
-            let riscv = back::into_riscv(ir)?;
+            let riscv = back::into_riscv(ir, false)?;
+            fs::write(&config.output, riscv)?;
+            Ok(())
+        }
+        cli::CompilerMode::Perf => {
+            let riscv = back::into_riscv(ir, true)?;
             fs::write(&config.output, riscv)?;
             Ok(())
         }
@@ -50,7 +55,7 @@ mod test {
     fn riscv() {
         let source = read_test_file();
         let koopa = front::into_ir(source);
-        let riscv = back::into_riscv(koopa).unwrap();
+        let riscv = back::into_riscv(koopa, true).unwrap();
         print!("{}", riscv);
         fs::write("this.test.asm", riscv).unwrap();
     }

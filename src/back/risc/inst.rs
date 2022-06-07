@@ -4,10 +4,11 @@ use crate::back::risc::MAX_IMM;
 
 use super::{reg::RiscReg as Reg, RiscLabel};
 
-#[allow(dead_code)]
 /// RISC-V 指令
 ///
 /// https://pku-minic.github.io/online-doc/#/misc-app-ref/riscv-insts
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
 pub enum RiscInst {
     /// 按位与 `and rd, rs1, rs2`
     And(Reg, Reg, Reg),
