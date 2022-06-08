@@ -23,6 +23,18 @@ impl Shape {
         zip(v, &self.1).fold(0, |acc, (i, s)| acc + i * s)
     }
 
+    /// [2, 3, 4] -> [24, 12, 4]
+    pub fn product(&self) -> Vec<i32> {
+        let mut p = Vec::with_capacity(self.0.len());
+        let mut t = 1;
+        self.0.iter().rev().for_each(|d| {
+            t *= d;
+            p.push(t);
+        });
+        p.reverse();
+        p
+    }
+
     pub fn total(&self) -> i32 {
         self.2
     }

@@ -70,19 +70,51 @@ impl<'a> Display for RawAggregate<'a> {
 
 pub struct ShapedInitializer<'a>(pub &'a Shape, pub &'a Initializer);
 
+struct InitializerHelper<'ast, 'sh> {
+    pub elems: Vec<Option<&'ast Initializer>>,
+    pub shape: &'sh Shape,
+    pub product: Vec<i32>
+}
+
 impl Initializer {
-    pub fn build<'a, 'b>(&'a self, shape: &'b Shape) -> RawAggregate<'a> {
+    
+    /* pub fn build<'a, 'b>(&'a self, shape: &'b Shape) -> RawAggregate<'a> {
         let mut h: InitializerStack<'a, 'b> = InitializerStack::new(shape);
         // let mut dest = vec![];
         self.fill(&mut h);
         h.try_carry(0);
         assert_eq!(h.stack.len(), 1);
         let x = h.stack.pop().unwrap();
-        println!("{:?}", &x);
         x
+    } */
+
+    pub fn build<'ast, 'sh>(&'ast self, shape: &'sh Shape) -> RawAggregate<'ast> {
+        let mut helper = InitializerHelper {
+            elems: Vec::with_capacity(shape.total() as usize),
+            shape,
+            product: shape.product(),
+        };
+        self.fill(&mut helper);
+        helper.into()
+    } 
+
+    fn fill<'ast, 'sh, 'helper>(&'ast self, helper: &'helper mut InitializerHelper<'ast, 'sh>) -> i32
+    where 'ast: 'helper
+    {
+        match self {
+            Initializer::List(list) => {
+                let dim = helper.product.iter().filter(|p| helper.elems.len() % (**p as usize) == 0).next().cloned().unwrap();
+                let filled: i32 = list.iter().map(|i| i.fill(helper)).sum();
+                if dim > filled {
+                    helper.elems.extend(iter::repeat(None).take((dim - filled) as usize));
+                }
+                dim
+            },
+            v @ Initializer::Value(_) => { helper.elems.push(Some(v)); 1 }
+        }
     }
 
-    fn fill<'a: 'c, 'b, 'c>(
+    /* fn fill<'a: 'c, 'b, 'c>(
         &'a self,
         h: &'c mut InitializerStack<'a, 'b>, /* , d: &'b mut Vec<Option<&'a Exp>> */
     ) {
@@ -141,6 +173,34 @@ impl Initializer {
                 }
             }
         }
+    } */
+}
+
+impl<'ast> From<&'ast Initializer> for RawAggregate<'ast> {
+    fn from(val: &'ast Initializer) -> Self {
+        match val {
+            Initializer::List(..) => panic!("A Initializer::List must be unfolded."),
+            Initializer::Value(e) => RawAggregate::Value(e.clone()),
+        }
+    }
+}
+
+
+impl<'ast, 'sh> From<InitializerHelper<'ast, 'sh>> for RawAggregate<'ast> {
+    fn from(h: InitializerHelper<'ast, 'sh>) -> Self {
+        let InitializerHelper { shape, elems, .. } = h;
+        let raw_agrs = elems.into_iter().map(|e| e.map_or(RawAggregate::ZeroInitOne(shape.len()), |i| i.into())).collect::<Vec<_>>();
+        let a = shape.iter().enumerate().rev().fold(raw_agrs, |acc, (level, dim)| {
+            acc.chunks(*dim as usize).map(|chunk| {
+                if chunk.iter().all(|a| matches!(a, RawAggregate::ZeroInitOne(_))) {
+                    RawAggregate::ZeroInitWhole(level)
+                } else {
+                    RawAggregate::Agg(chunk.to_vec())
+                }
+            }).collect::<Vec<_>>()
+        }).first().cloned().unwrap();
+        println!("{:?}", a);
+        a
     }
 }
 
