@@ -73,7 +73,8 @@ pub struct ShapedInitializer<'a>(pub &'a Shape, pub &'a Initializer);
 struct InitializerHelper<'ast, 'sh> {
     pub elems: Vec<Option<&'ast Initializer>>,
     pub shape: &'sh Shape,
-    pub product: Vec<i32>
+    pub product: Vec<i32>,
+    pub aligned_to: usize,
 }
 
 impl Initializer {
@@ -93,6 +94,7 @@ impl Initializer {
             elems: Vec::with_capacity(shape.total() as usize),
             shape,
             product: shape.product(),
+            aligned_to: 0,
         };
         self.fill(&mut helper);
         helper.into()
@@ -103,12 +105,17 @@ impl Initializer {
     {
         match self {
             Initializer::List(list) => {
-                let dim = helper.product.iter().filter(|p| helper.elems.len() % (**p as usize) == 0).next().cloned().unwrap();
+                let (dim , product) = helper.product.iter().enumerate().skip(helper.aligned_to).filter(|(_, p)| helper.elems.len() % (**p as usize) == 0).next().unwrap();
+                let product = *product;
+                let original_aligned_to = helper.aligned_to;
+                helper.aligned_to = dim + 1;
                 let filled: i32 = list.iter().map(|i| i.fill(helper)).sum();
-                if dim > filled {
-                    helper.elems.extend(iter::repeat(None).take((dim - filled) as usize));
+                if product > filled {
+                    dbg!(product, filled, helper.elems.len());
+                    helper.elems.extend(iter::repeat(None).take((product - filled) as usize));
                 }
-                dim
+                helper.aligned_to = original_aligned_to;
+                product
             },
             v @ Initializer::Value(_) => { helper.elems.push(Some(v)); 1 }
         }
@@ -203,7 +210,7 @@ impl<'ast, 'sh> From<InitializerHelper<'ast, 'sh>> for RawAggregate<'ast> {
         a
     }
 }
-
+/* 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum InitializerState {
     Pad,
@@ -217,7 +224,7 @@ struct InitializerStack<'a, 'b> {
     progress: Vec<i32>,
     carrying: &'b Shape,
     // shape: Shape,
-}
+} */
 
 // fn carrying(shape: &Shape) -> Vec<i32> {
 //     let mut s = vec![];
@@ -230,7 +237,7 @@ struct InitializerStack<'a, 'b> {
 //     s.reverse();
 //     s
 // }
-
+/* 
 impl<'a, 'b> InitializerStack<'a, 'b> {
     fn new(shape: &'b Shape) -> InitializerStack<'a, 'b> {
         InitializerStack {
@@ -304,4 +311,4 @@ impl<'a, 'b> InitializerStack<'a, 'b> {
         !self.progress.is_empty()
             && self.progress.last() == self.carrying.get(self.progress.len() - 1)
     }
-}
+} */
